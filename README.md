@@ -54,7 +54,7 @@ Para uma descrição aprofundada dos três eixos de engenharia e segurança, con
 👉 [docs/arquitetura_e_diretrizes.md](file:///Users/antonxandre/cybersecurity_project/docs/arquitetura_e_diretrizes.md)
 
 * **Eixo 1 (Infraestrutura Cloud):** Instâncias Docker no Google Cloud Platform (GCP - Compute Engine Ubuntu Server 24.04 LTS), com Nginx (Reverse Proxy, SSL/TLS Let's Encrypt para IP público, suporte a PQC), firewall restritivo, acesso via chave SSH e Fail2Ban (4 erros, ban de 24h).
-* **Eixo 2 (Repositório Seguro):** Repositório privado no GitHub com autenticação 2FA/SSH, branch protection rules na `main`, secret scanning ativo, `.gitignore` blindado e secrets encriptados via GitHub Secrets.
+* **Eixo 2 (Repositório Seguro):** Repositório público no GitHub com autenticação 2FA/SSH, branch protection rules na `main`, secret scanning ativo, `.gitignore` blindado e secrets encriptados via GitHub Secrets.
 * **Eixo 3 (Desenvolvimento Web):** Frontend desenvolvido em Flutter Web com assistência de IA via Google Antigravity IDE, contendo tela de Login, Página Interna (Arena de Jogo) e Logout funcional.
 * **CI/CD:** Esteira automatizada no GitHub Actions para build do Flutter Web, geração da imagem Docker e deploy seguro via SSH na nuvem a cada push na branch `main`.
 
@@ -84,7 +84,7 @@ Em conformidade com as diretrizes do Eixo 3, o código implementa defesas ativas
 - [ ] O Web Server (Nginx ou Apache) está configurado com HTTPS (Certbot/Let's Encrypt) e redireciona o tráfego HTTP para HTTPS automaticamente (Eixo 1).
 - [ ] Os testes de TLS/SSL retornaram *Conformidade* ou *Nota A* (dependendo se IP ou domínio), com a devida ativação de PQC (Eixo 1).
 - [ ] O acesso à nuvem utiliza as seguintes boas práticas: uso de chave SSH e Fail2Ban configurado para a porta 22 (Eixo 1).
-- [ ] O código está versionado em um repositório seguro no GitHub (repositório privado com políticas de proteção e segredos configurados) e a conta está devidamente configurada (Eixo 2).
+- [ ] O código está versionado em um repositório público no GitHub e a conta está devidamente configurada com boas práticas (Eixo 2).
 - [ ] O `.gitignore` está configurado e não há chaves/senhas expostas no código (Eixo 2).
 - [ ] A aplicação possui Login, Página Interna e Logout, e foi desenvolvida com o auxílio de IA via IDE Antigravity ou equivalente (Eixo 3).
 - [ ] O `README.md` explica claramente quais foram os 3 itens do OWASP Top 10 mitigados e onde encontrá-los no código (Eixo 3).

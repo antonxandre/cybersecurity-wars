@@ -16,7 +16,7 @@ graph TD
         F4[Assistido por IA via Antigravity IDE]
     end
 
-    subgraph Eixo2["📦 Eixo 2: Repositório & DevSecOps (GitHub Privado)"]
+    subgraph Eixo2["📦 Eixo 2: Repositório & DevSecOps (GitHub Público)"]
         R1[Controle de Acesso & 2FA]
         R2[.gitignore & Proteção Anti-Vazamento]
         R3[Branch Protection Rules & PRs]
@@ -107,12 +107,12 @@ graph TD
 
 ---
 
-## 📦 Eixo 2: Repositório (Controle de Versão Seguro no GitHub Privado)
+## 📦 Eixo 2: Repositório (Controle de Versão Seguro no GitHub Público)
 
-O repositório do projeto adota modelo **privado**, com controle de acesso corporativo, salvaguardando segredos e implementando esteiras de governança DevSecOps.
+O repositório do projeto adota modelo **público** (conforme requisito obrigatório da disciplina), exigindo atenção redobrada à prevenção de vazamento de segredos, proteção de branches e governança DevSecOps.
 
 ### 2.1 Políticas de Segurança no Repositório
-* **Repositório Privado:** Acesso restrito aos colaboradores do time e avaliadores da disciplina via convite individual com papel de menor privilégio.
+* **Repositório Público e Acesso:** O código-fonte é hospedado em repositório público no GitHub para livre acesso, transparência e avaliação acadêmica, sem abrir mão do controle estrito sobre commits e releases.
 * **Autenticação Segura de Desenvolvedores:**
   * Obrigatoriedade de Autenticação em Dois Fatores (2FA) na conta GitHub.
   * Operações de `git clone`, `push` e `pull` realizadas exclusivamente com **chaves SSH** ou **Personal Access Tokens (PAT)** com escopos limitados e data de expiração definida.
@@ -175,7 +175,7 @@ A entrega da aplicação é 100% automatizada via **GitHub Actions**. Qualquer p
 sequenceDiagram
     autonumber
     actor Dev as Desenvolvedor (Antigravity IDE)
-    participant GH as GitHub Repo (Privado)
+    participant GH as GitHub Repo (Público)
     participant GHA as GitHub Actions Runner
     participant GCP as GCP Compute Engine (Ubuntu + Docker)
 
@@ -247,6 +247,6 @@ jobs:
 | Item | Diretriz da Disciplina | Solução Adotada no PromptSec Arena |
 | :--- | :--- | :--- |
 | **Eixo 1 (Cloud)** | Ubuntu Server/Debian + Nginx/Apache + IP público + Chaves SSH + Fail2Ban + SSL IP com Let's Encrypt + PQC | GCP Compute Engine (Ubuntu 24.04 LTS), Docker, Nginx, Certbot 5.4+ (IP público Let's Encrypt), Fail2Ban (4 erros, ban 24h), Suporte PQC ativo. |
-| **Eixo 2 (Repo)** | Versionamento seguro, sem credenciais expostas, .gitignore adequado | GitHub Privado, Secret Scanning, Push Protection, Branch Protection na `main`, GitHub Secrets para chaves SSH, `.gitignore` blindado. |
+| **Eixo 2 (Repo)** | Repositório público, versionamento seguro, sem credenciais expostas, .gitignore adequado | GitHub Público, Secret Scanning, Push Protection, Branch Protection na `main`, GitHub Secrets para chaves SSH, `.gitignore` blindado. |
 | **Eixo 3 (Dev)** | Web livre, Login, Página Interna, Logout, Mitigação de 3 OWASPs, IDE com IA | Flutter Web, tela de Login, Arena interna de jogo, botão de Logout, mitigação de A01, A03 e A07 (OWASP 2025), desenvolvido no Google Antigravity IDE. |
 | **CI/CD** | GitHub Actions automatizado no push para a branch `main` | Workflow no GitHub Actions com lint, build Flutter Web, build Docker e deploy automatizado via SSH seguro. |
