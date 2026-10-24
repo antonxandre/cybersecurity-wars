@@ -95,12 +95,10 @@ class _ArenaScreenState extends State<ArenaScreen> {
           existingNode: existingNode,
           currentCpu: state.cpuBudget,
           onNodeSelected: (node) {
-            Navigator.pop(context);
             _viewModel.buildNode(node);
             _game.clearGridSelection();
           },
           onNodeDismantled: () {
-            Navigator.pop(context);
             if (existingNode != null) {
               _viewModel.dismantleNode(existingNode);
             }
@@ -108,7 +106,9 @@ class _ArenaScreenState extends State<ArenaScreen> {
           },
         );
       },
-    );
+    ).whenComplete(() {
+      _game.clearGridSelection();
+    });
   }
 
   void _showMainframeUpgradeSheet() {
