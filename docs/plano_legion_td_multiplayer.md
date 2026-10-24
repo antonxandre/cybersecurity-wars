@@ -25,7 +25,7 @@ Ambos os jogadores do time podem investir seus **Tokens** coletivos ou individua
 | :--- | :--- | :--- |
 | **CPU (Processador)** | +Dano / -Cooldown | Overclocking nos emissores de laser defensivo do rack, aumentando o DPS contra alvos de alta vida. |
 | **RAM (Memória de Buffer)** | +Alvos Simultâneos (Multi-Target) | Aumenta o barramento de dados, permitindo disparar contra 2, 3 ou 4 invasores simultaneamente (essencial contra enxames/SYN Floods). |
-| **SSD NVMe (Armazenamento & Persistência)** | +Integridade Máxima (HP) e Autocura | Expande os snapshots de backup e a integridade máxima do rack, regenerando uma porcentagem do HP entre as rodadas. |
+| **Disco / Storage (`diskLevel`)** | +Capacidade Total (HP Máximo) e Backup | Expande a capacidade de armazenamento total de dados do rack, definindo o HP máximo e a integridade do Mainframe contra vazamentos de malwares. |
 
 ---
 
@@ -79,7 +79,7 @@ Substituição da antiga tela de múltiplos cenários por um Lobby de Partidas:
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ FASE 1: Core de Domínio e Economia Dupla (Bits, Tokens e Mineradores)       │
 │ • Modelagem de Bits, Tokens, Income por envio de vírus e Mineradores        │
-│ • Mainframe Central com níveis de CPU, RAM e SSD NVMe                       │
+│ • Mainframe Central com níveis de CPU, RAM e Disco                          │
 └──────────────────────────────────────┬──────────────────────────────────────┘
                                        │
 ┌──────────────────────────────────────▼──────────────────────────────────────┐
