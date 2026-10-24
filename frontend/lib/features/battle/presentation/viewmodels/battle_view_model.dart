@@ -79,6 +79,87 @@ class BattleViewModel extends ChangeNotifier {
     ));
   }
 
+  /// Aplica dano ao LLM Core quando um pacote inimigo atinge a base
+  void onCoreDamaged(double damage) {
+    final current = state.value;
+    if (current.phase != MatchPhase.battle) return;
+
+    final newIntegrity = (current.coreAiIntegrity - damage).clamp(0.0, 100.0);
+    debugPrint('[BattleVM] DANO NO CORE: -$damage! Integridade restante: $newIntegrity%');
+
+    if (newIntegrity <= 0) {
+      updateState(current.copyWith(
+        coreAiIntegrity: 0.0,
+        phase: MatchPhase.defeat,
+      ));
+      debugPrint('[BattleVM] DERROTA: LLM Core foi comprometido!');
+    } else {
+      updateState(current.copyWith(coreAiIntegrity: newIntegrity));
+    }
+  }
+
+  /// Bonifica o SLA quando tráfego legítimo HTTPS é entregue com sucesso
+  void onClientDelivered() {
+    final current = state.value;
+    if (current.phase != MatchPhase.battle) return;
+
+    final newSla = (current.slaPercentage + 2.0).clamp(0.0, 100.0);
+    updateState(current.copyWith(slaPercentage: newSla));
+  }
+
+  /// Penaliza o SLA quando pacotes legítimos são bloqueados ou descartados
+  void onSlaPenalized(double penalty) {
+    final current = state.value;
+    if (current.phase != MatchPhase.battle) return;
+
+    final newSla = (current.slaPercentage - penalty).clamp(0.0, 100.0);
+    debugPrint('[BattleVM] PENALIDADE DE SLA: -$penalty! SLA restante: $newSla%');
+
+    if (newSla <= 0) {
+      updateState(current.copyWith(
+        slaPercentage: 0.0,
+        phase: MatchPhase.defeat,
+      ));
+      debugPrint('[BattleVM] DERROTA: SLA de serviço chegou a 0%!');
+    } else {
+      updateState(current.copyWith(slaPercentage: newSla));
+    }
+  }
+
+  /// Invocado quando uma onda de ataque é vencida com sucesso
+  void onWaveVictory(int completedWave) {
+    final current = state.value;
+    if (completedWave >= current.totalWaves) {
+      onMatchVictory();
+    } else {
+      // Avança a onda e abre o draft de perks do Archero
+      final nextWave = completedWave + 1;
+      final draft = _generateDraftOptions();
+      updateState(current.copyWith(
+        currentWave: nextWave,
+        phase: MatchPhase.perkDraft,
+        draftOptions: draft,
+      ));
+      debugPrint('[BattleVM] Onda $completedWave superada! Avançando para Onda $nextWave');
+    }
+  }
+
+  /// Declara vitória definitiva da partida (todas as ondas superadas)
+  void onMatchVictory() {
+    final current = state.value;
+    updateState(current.copyWith(phase: MatchPhase.victory));
+    debugPrint('[BattleVM] VITÓRIA! Todas as ondas foram neutralizadas com sucesso!');
+  }
+
+  /// Reinicia a partida para o estado inicial
+  void resetMatch() {
+    executor.clearHistory();
+    state.value = MatchState.initial();
+    _initializeInitialDeckAndHand();
+    notifyListeners();
+    debugPrint('[BattleVM] Partida reiniciada.');
+  }
+
   List<RoguelitePerk> _generateDraftOptions() {
     return const [
       RoguelitePerk(

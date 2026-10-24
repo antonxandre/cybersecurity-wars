@@ -115,7 +115,7 @@ graph TD
 ### ⚔️ ÉPICO 2: Motor de Combate, Interceptação e Projéteis (Clash Royale)
 > **Objetivo:** Fazer os pacotes transitarem pelas duas rotas, permitir que os bastiões detectem e atirem contra pacotes inimigos, e calcular dano ao Core e ao SLA.
 
-- [ ] **Task 2.1: Controlador de Ondas Scriptadas (Wave Spawner)**
+- [x] **Task 2.1: Controlador de Ondas Scriptadas (Wave Spawner)**
   * **Descrição:** Criar uma classe controladora no ViewModel que gerencia a geração de pacotes inimigos por onda com dificuldade progressiva:
     * **Onda 1 (Port Scanners):** Pacotes rápidos de baixa vida descendo na Lane 1 e Lane 2.
     * **Onda 2 (SYN Flood):** Enxame de múltiplos pacotes leves simultâneos.
@@ -125,7 +125,7 @@ graph TD
     * Ao eliminar todos os pacotes da onda, dispara o evento de vitória da onda.
   * **Arquivos:** `lib/features/battle/domain/services/wave_spawner_service.dart`.
 
-- [ ] **Task 2.2: Sistema de Detecção e Tiro dos Bastiões (Combat Loop)**
+- [x] **Task 2.2: Sistema de Detecção e Tiro dos Bastiões (Combat Loop)**
   * **Descrição:** No método `update(dt)` do `BastionNodeComponent` ou do jogo, verificar a distância Euclidiana entre o nó e os pacotes inimigos ativos. Se um pacote estiver dentro do `attackRange`, disparar um efeito de laser (`LaserBeamEffect`) em sua direção e aplicar dano contínuo ou por rajada.
   * **Critérios de Aceite:**
     * O laser conecta visualmente o nó ao pacote alvo por 150ms com cor correspondente (Ciano para Firewall, Roxo para WAF).
@@ -133,7 +133,7 @@ graph TD
     * Se o HP do pacote zerar, ele se dissolve em partículas de dados e é removido da cena.
   * **Arquivos:** `lib/game/components/laser_beam_effect.dart`, `lib/game/cyber_arena_game.dart`.
 
-- [ ] **Task 2.3: Impacto na Base e Dano ao LLM Core**
+- [x] **Task 2.3: Impacto na Base e Dano ao LLM Core**
   * **Descrição:** Se um pacote inimigo alcançar o final da rota sem ser interceptado, ele colide com o Core da base.
   * **Critérios de Aceite:**
     * Dispara um efeito visual de tremor de tela ou pulso vermelho no Core.
@@ -141,7 +141,7 @@ graph TD
     * O medidor de integridade no cabeçalho atualiza fluidamente.
   * **Arquivos:** `lib/game/components/data_packet_component.dart`, `lib/features/battle/presentation/viewmodels/battle_view_model.dart`.
 
-- [ ] **Task 2.4: Tráfego de Clientes Legítimos e Medidor de SLA**
+- [x] **Task 2.4: Tráfego de Clientes Legítimos e Medidor de SLA**
   * **Descrição:** Periodicamente, pacotes verdes (clientes legítimos HTTPS) tentam trafegar até o servidor. Se passarem com sucesso, o SLA se mantém em 100%. Se colidirem com regras excessivamente restritivas ou se os nós estiverem danificados, o pacote é descartado e o SLA cai.
   * **Critérios de Aceite:**
     * Se o SLA cair para 0%, resulta em derrota imediata.
