@@ -45,9 +45,9 @@ class MatchHeaderWidget extends StatelessWidget {
                 Row(
                   children: [
                     IconButton(
-                      tooltip: 'Retornar ao Hub Tático',
+                      tooltip: 'Retornar ao Lobby',
                       icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: AppColors.textSecondary),
-                      onPressed: () => context.go('/hub'),
+                      onPressed: () => context.go('/lobby'),
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),

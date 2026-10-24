@@ -26,11 +26,14 @@ class AppColors {
   static const Color coreAiSecondary = Color(0xFF7928CA);
   static const Color coreAiGlow = Color(0x66BD00FF);
 
-  // Recursos de Partida
+  // Recursos de Partida e Economia Legion TD
   static const Color bandwidth = Color(0xFF00FF66); // Banda de Rede (Mana/Energia)
   static const Color bandwidthGlow = Color(0x6600FF66);
   static const Color cpuClock = Color(0xFFFFCC00); // Clock/CPU Cycles (Economia)
   static const Color cpuClockGlow = Color(0x66FFCC00);
+  static const Color bitsGold = Color(0xFFFFCC00); // Bits (Ouro no Legion TD)
+  static const Color tokensLumber = Color(0xFFBD00FF); // Tokens (Cripto/Lumber no Legion TD)
+  static const Color tokensLumberGlow = Color(0x66BD00FF);
 
   // Alertas e Status de Rede
   static const Color statusOpen = Color(0xFFFF3366); // Aberta / Perigo

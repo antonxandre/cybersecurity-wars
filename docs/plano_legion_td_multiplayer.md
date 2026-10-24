@@ -77,29 +77,43 @@ Substituição da antiga tela de múltiplos cenários por um Lobby de Partidas:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ FASE 1: Core de Domínio e Economia Dupla (Bits, Tokens e Mineradores)       │
+│ ✅ FASE 1: Core de Domínio e Economia Dupla (Bits, Tokens e Mineradores)     │
 │ • Modelagem de Bits, Tokens, Income por envio de vírus e Mineradores        │
 │ • Mainframe Central com níveis de CPU, RAM e Disco                          │
+│ • Commit: 211f5fa                                                           │
 └──────────────────────────────────────┬──────────────────────────────────────┘
                                        │
 ┌──────────────────────────────────────▼──────────────────────────────────────┐
-│ FASE 2: Câmera Panorâmica Flame & Renderização dos 2 Campos                 │
+│ ✅ FASE 2: Câmera Panorâmica Flame & Renderização dos 2 Campos               │
 │ • Flame CameraComponent com Pan e Zoom livre                                │
 │ • Renderização do Campo 1 (Aliado), Túneis e Campo 2 (Inimigo)              │
 │ • Componente visual do Mainframe Central com LEDs e disparos multi-target   │
+│ • Commit: b7cca86                                                           │
 └──────────────────────────────────────┬──────────────────────────────────────┘
                                        │
 ┌──────────────────────────────────────▼──────────────────────────────────────┐
-│ FASE 3: Sistema de Envio de Vírus e Bot de IA Scriptado                     │
+│ ✅ FASE 3: Sistema de Envio de Vírus e Bot de IA Scriptado                   │
 │ • Painel HUD de Envio de Malwares com acréscimo de renda permanente         │
 │ • Script de IA para o Time 2 (build automático e envio de malwares)         │
-│ • Mecânica de Leaks: vírus vazados entram na sala do Mainframe              │
+│ • Modal de upgrades de hardware do Mainframe (CPU, RAM, Disco)              │
+│ • Commit: 9e0a8d7                                                           │
 └──────────────────────────────────────┬──────────────────────────────────────┘
                                        │
 ┌──────────────────────────────────────▼──────────────────────────────────────┐
-│ FASE 4: Lobby de Partidas e Menus (Criar Sala / Buscar / IA)                │
-│ • Nova tela /lobby substituindo o antigo hub                                │
-│ • Modal de Upgrades do Mainframe no HUD da Arena                            │
-│ • Conexão do fluxo com GoRouter e verificação de testes                     │
+│ ✅ FASE 4: Lobby de Partidas e Menus (Criar Sala / Buscar / IA)              │
+│ • Nova tela /lobby unificada (Solo IA, Criar Sala Host e Encontrar Sala)    │
+│ • Conexão do fluxo com GoRouter e retorno de partida                        │
+│ • Fullscreen e landscape preservados em toda a navegação                    │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 🚀 8. Checklist de Entregas e Validação
+
+- [x] **Preliminar Fullscreen & Landscape:** Configuração do `index.html` (100vw x 100vh), `FullscreenHelper` e orientação horizontal fixa.
+- [x] **Fase 1 (Domínio):** Modelos `MainframeModel` (CPU, RAM, Disco/Storage), `MatchEconomyState` (Bits, Tokens, Mineradores, Income) e `TacticalVirusModel`.
+- [x] **Fase 2 (Canvas Flame):** `PanoramicBackgroundComponent`, `MainframeComponent` animado com laser multi-target, gestos de Pan e Zoom livre com `PanoramicCameraBar`.
+- [x] **Fase 3 (Combate & IA):** `VirusDispatcherDock` no lugar do dock de cartas, `MainframeUpgradeSheet` modal, `ScriptedBotService` com rotinas táticas do Time 2.
+- [x] **Fase 4 (Lobby & Navegação):** `GameLobbyScreen` em `/lobby`, GoRouter atualizado com Route Guards OWASP A01, botões de retorno ao lobby sincronizados.
+

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/domain/services/auth_service.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/battle/presentation/screens/arena_screen.dart';
+import '../../features/lobby/presentation/screens/game_lobby_screen.dart';
 import '../../features/scenarios/presentation/screens/scenario_hub_screen.dart';
 
 /// Configuração do roteador declarativo com Route Guards reativos (OWASP A01:2025).
@@ -18,9 +19,9 @@ final GoRouter appRouter = GoRouter(
       return isLoggingIn ? null : '/login';
     }
 
-    // Se já autenticado e tentar acessar /login, redireciona ao Hub
+    // Se já autenticado e tentar acessar /login, redireciona ao Lobby
     if (isLoggingIn) {
-      return '/hub';
+      return '/lobby';
     }
 
     return null;
@@ -32,6 +33,11 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const LoginScreen(),
     ),
     GoRoute(
+      path: '/lobby',
+      name: 'lobby',
+      builder: (context, state) => const GameLobbyScreen(),
+    ),
+    GoRoute(
       path: '/hub',
       name: 'hub',
       builder: (context, state) => const ScenarioHubScreen(),
@@ -40,7 +46,6 @@ final GoRouter appRouter = GoRouter(
       path: '/arena',
       name: 'arena',
       builder: (context, state) {
-        // Suporta passagem de cenário selecionado via extra ou query params
         return const ArenaScreen();
       },
     ),
