@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import '../core/theme/app_colors.dart';
@@ -9,16 +10,23 @@ import '../features/battle/domain/services/wave_spawner_service.dart';
 import '../features/battle/presentation/viewmodels/battle_view_model.dart';
 import 'components/data_packet_component.dart';
 import 'components/laser_beam_effect.dart';
+import 'components/mainframe_component.dart';
 import 'components/network_grid_component.dart';
+import 'components/panoramic_background_component.dart';
 
-/// Instância do FlameGame responsável pelo canvas 2D, simulação física e combate em tempo real.
-class CyberArenaGame extends FlameGame {
+/// Instância do FlameGame responsável pelo canvas 2D panorâmico (2 campos + túneis centrais),
+/// simulação física e combate em tempo real estilo Legion TD.
+class CyberArenaGame extends FlameGame with PanDetector, ScrollDetector {
   final BattleViewModel viewModel;
 
   /// Callback invocado quando o jogador toca em uma célula da grade tática
   void Function(int gridX, int gridY)? onGridCellSelected;
 
-  late final NetworkGridComponent _gridComponent;
+  late final NetworkGridComponent _blueGrid;
+  late final NetworkGridComponent _redGrid;
+  late final MainframeComponent _blueMainframe;
+  late final MainframeComponent _redMainframe;
+
   final WaveSpawnerService _spawner = WaveSpawnerService();
   final Map<String, double> _nodeAttackTimers = {};
 
@@ -34,14 +42,16 @@ class CyberArenaGame extends FlameGame {
   Future<void> onLoad() async {
     await super.onLoad();
 
-    // Adiciona o Grid de Rede tático ocupando a área central de combate
-    final gridWidth = size.x.clamp(320.0, 480.0);
-    final gridHeight = size.y * 0.72;
-    final gridX = (size.x - gridWidth) / 2;
-    const gridY = 70.0;
+    // 1. Fundo Panorâmico com os dois campos e túneis de fibra ótica
+    world.add(PanoramicBackgroundComponent());
 
-    _gridComponent = NetworkGridComponent(
-      position: Vector2(gridX, gridY),
+    // 2. Campo do Time Aliado (Blue Team - Esquerda)
+    const gridWidth = 360.0;
+    const gridHeight = 420.0;
+    final blueCenter = Vector2(-440, 0);
+
+    _blueGrid = NetworkGridComponent(
+      position: Vector2(blueCenter.x - (gridWidth / 2), blueCenter.y - (gridHeight / 2) - 30),
       size: Vector2(gridWidth, gridHeight),
       getNodes: () => viewModel.state.value.nodes,
       getMatchPhase: () => viewModel.state.value.phase,
@@ -49,60 +59,132 @@ class CyberArenaGame extends FlameGame {
         onGridCellSelected?.call(col, row);
       },
     );
-    add(_gridComponent);
+    world.add(_blueGrid);
 
-    // Ouve despachos de cartas emitidos pelo ViewModel (mão do jogador)
+    // Mainframe Central do Time Aliado (posicionado atrás do grid de defesa)
+    _blueMainframe = MainframeComponent(
+      teamId: 'team_blue',
+      position: Vector2(blueCenter.x, blueCenter.y + (gridHeight / 2) + 40),
+      getModel: () => viewModel.state.value.mainframeBlue,
+      getEnemyPackets: () => world.children
+          .whereType<DataPacketComponent>()
+          .where((p) => p.origin == PacketOrigin.redExploit && !p.isDead)
+          .toList(),
+      onDamaged: (dmg) => viewModel.onMainframeDamaged('team_blue', dmg),
+    );
+    world.add(_blueMainframe);
+
+    // 3. Campo do Time Adversário (Red Team - Direita)
+    final redCenter = Vector2(440, 0);
+
+    _redGrid = NetworkGridComponent(
+      position: Vector2(redCenter.x - (gridWidth / 2), redCenter.y - (gridHeight / 2) - 30),
+      size: Vector2(gridWidth, gridHeight),
+      getNodes: () => viewModel.state.value.opponentNodes,
+      getMatchPhase: () => viewModel.state.value.phase,
+      onCellTapped: (col, row) {},
+    );
+    world.add(_redGrid);
+
+    // Mainframe Central do Time Adversário
+    _redMainframe = MainframeComponent(
+      teamId: 'team_red',
+      position: Vector2(redCenter.x, redCenter.y + (gridHeight / 2) + 40),
+      getModel: () => viewModel.state.value.mainframeRed,
+      getEnemyPackets: () => world.children
+          .whereType<DataPacketComponent>()
+          .where((p) => p.origin == PacketOrigin.blueDefense && !p.isDead)
+          .toList(),
+      onDamaged: (dmg) => viewModel.onMainframeDamaged('team_red', dmg),
+    );
+    world.add(_redMainframe);
+
+    // 4. Configuração Inicial da Câmera Panorâmica (focada no grid aliado)
+    camera.viewfinder.position = Vector2(blueCenter.x, 20);
+    camera.viewfinder.zoom = 0.95;
+
+    // Ouve despachos de cartas emitidos pelo ViewModel
     _dispatchSubscription = viewModel.flameDispatches.listen((event) {
       _spawnCardPackets(event.card, event.lane);
     });
   }
 
+  // --- Controles de Navegação Panorâmica por Gestos (Pan e Zoom) ---
+
+  @override
+  void onPanUpdate(DragUpdateInfo info) {
+    camera.viewfinder.position -= info.delta.global / camera.viewfinder.zoom;
+  }
+
+  @override
+  void onScroll(PointerScrollInfo info) {
+    final zoomDelta = info.scrollDelta.global.y * 0.001;
+    camera.viewfinder.zoom = (camera.viewfinder.zoom - zoomDelta).clamp(0.45, 1.6);
+  }
+
+  // --- Âncoras Rápidas de Câmera para o HUD ---
+
+  void focusOnMyGrid() {
+    camera.viewfinder.position = Vector2(-440, 20);
+    camera.viewfinder.zoom = 0.95;
+  }
+
+  void focusOnOpponent() {
+    camera.viewfinder.position = Vector2(440, 20);
+    camera.viewfinder.zoom = 0.95;
+  }
+
+  void focusOnMainframe(bool isBlue) {
+    camera.viewfinder.position = isBlue ? Vector2(-440, 250) : Vector2(440, 250);
+    camera.viewfinder.zoom = 1.2;
+  }
+
+  void focusOnOverview() {
+    camera.viewfinder.position = Vector2(0, 30);
+    camera.viewfinder.zoom = 0.52;
+  }
+
   void clearGridSelection() {
-    _gridComponent.clearSelection();
+    _blueGrid.clearSelection();
   }
 
   void _spawnCardPackets(GameCard card, int lane) {
-    final cellWidth = _gridComponent.size.x / _gridComponent.columns;
-    final targetX = _gridComponent.position.x +
-        (lane == 0 ? cellWidth * 1.0 : cellWidth * 3.0);
-    final startY = _gridComponent.position.y + _gridComponent.size.y - 20;
+    final cellWidth = _blueGrid.size.x / _blueGrid.columns;
+    final targetX = _blueGrid.position.x + (lane == 0 ? cellWidth * 1.0 : cellWidth * 3.0);
+    final startY = _blueGrid.position.y + _blueGrid.size.y - 20;
 
-    final origin =
-        card.type == CardType.exploit || card.type == CardType.payload
-            ? PacketOrigin.redExploit
-            : PacketOrigin.blueDefense;
+    final origin = card.type == CardType.exploit || card.type == CardType.payload
+        ? PacketOrigin.redExploit
+        : PacketOrigin.blueDefense;
 
-    // Dispara rajada de pacotes táticos subindo na rota selecionada
     for (int i = 0; i < 3; i++) {
       final packet = DataPacketComponent(
         startPosition: Vector2(targetX + (i * 4 - 4), startY + (i * 20)),
         origin: origin,
         subtype: PacketSubtype.bluePayload,
-        direction: Vector2(0, -1), // Move-se para cima
+        direction: Vector2(0, -1),
         speed: 170.0,
         damage: card.basePower / 3,
         maxHealth: 100.0,
       );
       _attachPacketCallbacks(packet);
-      add(packet);
+      world.add(packet);
     }
   }
 
   void _attachPacketCallbacks(DataPacketComponent packet) {
-    // Quando o pacote alcança o fim de sua trajetória
     final existingCallback = packet.onReachedEnd;
     packet.onReachedEnd = (p) {
       existingCallback?.call(p);
       if (p.origin == PacketOrigin.redExploit) {
-        // Pacote inimigo atingiu o Core da base!
+        // Pacote inimigo vazou (leak) e atingiu o Mainframe Aliado!
+        viewModel.onMainframeDamaged('team_blue', p.damage);
         viewModel.onCoreDamaged(p.damage);
       } else if (p.origin == PacketOrigin.clientTraffic) {
-        // Tráfego legítimo HTTPS alcançou o servidor com sucesso!
         viewModel.onClientDelivered();
       }
     };
 
-    // Quando um pacote inimigo é destruído por lasers ou colisões
     final existingDestroyed = packet.onDestroyed;
     packet.onDestroyed = (p) {
       existingDestroyed?.call(p);
@@ -112,12 +194,12 @@ class CyberArenaGame extends FlameGame {
     };
   }
 
-  /// Limpa todos os componentes e reinicia a simulação para nova partida
   void resetGame() {
     _spawner.reset();
-    children.whereType<DataPacketComponent>().forEach((p) => p.removeFromParent());
+    world.children.whereType<DataPacketComponent>().forEach((p) => p.removeFromParent());
     _nodeAttackTimers.clear();
     clearGridSelection();
+    focusOnMyGrid();
   }
 
   @override
@@ -126,27 +208,23 @@ class CyberArenaGame extends FlameGame {
 
     final state = viewModel.state.value;
 
-    // Detecta transição de fases
     if (_lastPhase != state.phase) {
       if (state.phase == MatchPhase.battle) {
         _spawner.startWave(state.currentWave);
       } else if (state.phase == MatchPhase.preparation) {
-        // Limpa pacotes remanescentes na transição de volta para o Turno Zero
-        children
-            .whereType<DataPacketComponent>()
-            .forEach((p) => p.removeFromParent());
+        world.children.whereType<DataPacketComponent>().forEach((p) => p.removeFromParent());
       }
       _lastPhase = state.phase;
     }
 
     if (state.phase != MatchPhase.battle) return;
 
-    final cellWidth = _gridComponent.size.x / _gridComponent.columns;
-    final lane1X = _gridComponent.position.x + (cellWidth * 1.0);
-    final lane2X = _gridComponent.position.x + (cellWidth * 3.0);
-    final spawnY = _gridComponent.position.y + 10;
+    final cellWidth = _blueGrid.size.x / _blueGrid.columns;
+    final lane1X = _blueGrid.position.x + (cellWidth * 1.0);
+    final lane2X = _blueGrid.position.x + (cellWidth * 3.0);
+    final spawnY = _blueGrid.position.y + 10;
 
-    // 1. Atualiza o Spawner de Ondas Inimigas e Tráfego de Clientes
+    // 1. Spawner de Ondas Inimigas na Rota
     _spawner.update(
       dt: dt,
       lane1X: lane1X,
@@ -154,31 +232,30 @@ class CyberArenaGame extends FlameGame {
       startY: spawnY,
       onSpawnPacket: (packet) {
         _attachPacketCallbacks(packet);
-        add(packet);
+        world.add(packet);
       },
       onWaveCompleted: (completedWave) {
         viewModel.onWaveVictory(completedWave);
       },
     );
 
-    // 2. Loop de Combate dos Bastiões (Detecção por Distância e Disparo de Laser)
-    _updateBastionCombat(dt, state.nodes);
+    // 2. Loop de Combate dos Bastiões Aliados
+    _updateBastionCombat(dt, _blueGrid, state.nodes);
 
-    // 3. Colisão entre Pacotes Defensivos (subindo) e Invasores (descendo)
+    // 3. Colisão Frontal entre Pacotes
     _updatePacketCollisions();
   }
 
-  void _updateBastionCombat(double dt, Map<String, BastionNode> nodes) {
-    final cellWidth = _gridComponent.size.x / _gridComponent.columns;
-    final cellHeight = _gridComponent.size.y / _gridComponent.rows;
+  void _updateBastionCombat(double dt, NetworkGridComponent grid, Map<String, BastionNode> nodes) {
+    final cellWidth = grid.size.x / grid.columns;
+    final cellHeight = grid.size.y / grid.rows;
 
-    final activeEnemyPackets = children
+    final activeEnemyPackets = world.children
         .whereType<DataPacketComponent>()
         .where((p) => p.origin == PacketOrigin.redExploit && !p.isDead)
         .toList();
 
     for (final node in nodes.values) {
-      // Cooldown individual por nó
       _nodeAttackTimers[node.id] = (_nodeAttackTimers[node.id] ?? 0.0) + dt;
 
       final cadence = node.type == BastionNodeType.idsSentinel
@@ -187,16 +264,10 @@ class CyberArenaGame extends FlameGame {
 
       if (_nodeAttackTimers[node.id]! < cadence) continue;
 
-      // Posição no mundo do nó
-      final nodeCenterX = _gridComponent.position.x +
-          (node.gridX * cellWidth) +
-          (cellWidth / 2);
-      final nodeCenterY = _gridComponent.position.y +
-          (node.gridY * cellHeight) +
-          (cellHeight / 2);
+      final nodeCenterX = grid.position.x + (node.gridX * cellWidth) + (cellWidth / 2);
+      final nodeCenterY = grid.position.y + (node.gridY * cellHeight) + (cellHeight / 2);
       final nodePos = Vector2(nodeCenterX, nodeCenterY);
 
-      // Encontra o pacote mais próximo dentro do attackRange
       DataPacketComponent? closestTarget;
       double closestDistance = double.infinity;
 
@@ -209,8 +280,7 @@ class CyberArenaGame extends FlameGame {
       }
 
       if (closestTarget != null) {
-        // Dispara o laser conectando o nó ao pacote alvo
-        add(
+        world.add(
           LaserBeamEffect(
             start: nodePos,
             end: closestTarget.position.clone(),
@@ -218,7 +288,6 @@ class CyberArenaGame extends FlameGame {
           ),
         );
 
-        // Aplica o dano no pacote potencializado por modificadores de perks
         final boostedDamage = node.attackDamage * viewModel.state.value.damageMultiplier;
         closestTarget.takeDamage(boostedDamage);
         _nodeAttackTimers[node.id] = 0.0;
@@ -227,12 +296,12 @@ class CyberArenaGame extends FlameGame {
   }
 
   void _updatePacketCollisions() {
-    final upwardPackets = children
+    final upwardPackets = world.children
         .whereType<DataPacketComponent>()
         .where((p) => p.direction.y < 0 && !p.isDead)
         .toList();
 
-    final downwardPackets = children
+    final downwardPackets = world.children
         .whereType<DataPacketComponent>()
         .where((p) => p.direction.y > 0 && !p.isDead)
         .toList();
@@ -240,7 +309,6 @@ class CyberArenaGame extends FlameGame {
     for (final up in upwardPackets) {
       for (final down in downwardPackets) {
         if (up.position.distanceTo(down.position) < 20.0) {
-          // Colisão frontal nas rotas
           up.takeDamage(down.damage);
           down.takeDamage(up.damage);
         }

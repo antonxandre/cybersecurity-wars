@@ -5,6 +5,7 @@ import '../../domain/models/bastion_node.dart';
 import '../../domain/models/game_card.dart';
 import '../../domain/models/match_state.dart';
 import '../../domain/models/roguelite_perk.dart';
+import '../../domain/models/tactical_virus_model.dart';
 import '../commands/battle_commands.dart';
 
 /// ViewModel que orquestra a sessão de jogo e a ponte entre a UI e o Flame Engine.
@@ -68,6 +69,120 @@ class BattleViewModel extends ChangeNotifier {
       phase: MatchPhase.battle,
       remainingSeconds: 60,
     ));
+  }
+
+  /// Realiza upgrade de CPU no Mainframe Central
+  bool upgradeMainframeCpu({bool isBlue = true}) {
+    final current = state.value;
+    final mainframe = isBlue ? current.mainframeBlue : current.mainframeRed;
+    final cost = mainframe.upgradeCostCpu;
+
+    if (!mainframe.canUpgradeCpu || current.economy.tokens < cost) return false;
+
+    final updatedEconomy = current.economy.spendTokens(cost);
+    final updatedMainframe = mainframe.upgradeCpu();
+
+    updateState(current.copyWith(
+      economy: updatedEconomy,
+      mainframeBlue: isBlue ? updatedMainframe : current.mainframeBlue,
+      mainframeRed: !isBlue ? updatedMainframe : current.mainframeRed,
+    ));
+    return true;
+  }
+
+  /// Realiza upgrade de RAM no Mainframe Central (alvos simultâneos)
+  bool upgradeMainframeRam({bool isBlue = true}) {
+    final current = state.value;
+    final mainframe = isBlue ? current.mainframeBlue : current.mainframeRed;
+    final cost = mainframe.upgradeCostRam;
+
+    if (!mainframe.canUpgradeRam || current.economy.tokens < cost) return false;
+
+    final updatedEconomy = current.economy.spendTokens(cost);
+    final updatedMainframe = mainframe.upgradeRam();
+
+    updateState(current.copyWith(
+      economy: updatedEconomy,
+      mainframeBlue: isBlue ? updatedMainframe : current.mainframeBlue,
+      mainframeRed: !isBlue ? updatedMainframe : current.mainframeRed,
+    ));
+    return true;
+  }
+
+  /// Realiza upgrade de Disco no Mainframe Central (capacidade total e HP)
+  bool upgradeMainframeDisk({bool isBlue = true}) {
+    final current = state.value;
+    final mainframe = isBlue ? current.mainframeBlue : current.mainframeRed;
+    final cost = mainframe.upgradeCostDisk;
+
+    if (!mainframe.canUpgradeDisk || current.economy.tokens < cost) return false;
+
+    final updatedEconomy = current.economy.spendTokens(cost);
+    final updatedMainframe = mainframe.upgradeDisk();
+
+    updateState(current.copyWith(
+      economy: updatedEconomy,
+      mainframeBlue: isBlue ? updatedMainframe : current.mainframeBlue,
+      mainframeRed: !isBlue ? updatedMainframe : current.mainframeRed,
+    ));
+    return true;
+  }
+
+  /// Recruta um processo minerador de tokens gastando Bits
+  bool recruitMiner() {
+    final current = state.value;
+    if (!current.economy.canRecruitMiner) return false;
+
+    final updatedEconomy = current.economy.recruitMiner();
+    updateState(current.copyWith(economy: updatedEconomy));
+    return true;
+  }
+
+  /// Envia um vírus tático contra o oponente (aumenta a renda permanente de Bits!)
+  bool sendTacticalVirus(TacticalVirusModel virus) {
+    final current = state.value;
+    if (current.economy.tokens < virus.tokenCost) return false;
+
+    final updatedEconomy = current.economy.registerVirusSent(
+      tokenCost: virus.tokenCost,
+      incomeBonus: virus.incomeBonus,
+    );
+
+    final updatedQueue = List<TacticalVirusModel>.from(current.queuedVirusesForOpponent)..add(virus);
+
+    updateState(current.copyWith(
+      economy: updatedEconomy,
+      queuedVirusesForOpponent: updatedQueue,
+    ));
+    return true;
+  }
+
+  /// Dano sofrido pelo Mainframe Central
+  void onMainframeDamaged(String teamId, double damage) {
+    final current = state.value;
+    final isBlue = teamId.contains('blue');
+    final target = isBlue ? current.mainframeBlue : current.mainframeRed;
+    final damaged = target.receiveDamage(damage);
+
+    if (isBlue) {
+      if (damaged.isDestroyed) {
+        updateState(current.copyWith(
+          mainframeBlue: damaged,
+          phase: MatchPhase.defeat,
+        ));
+      } else {
+        updateState(current.copyWith(mainframeBlue: damaged));
+      }
+    } else {
+      if (damaged.isDestroyed) {
+        updateState(current.copyWith(
+          mainframeRed: damaged,
+          phase: MatchPhase.victory,
+        ));
+      } else {
+        updateState(current.copyWith(mainframeRed: damaged));
+      }
+    }
   }
 
   /// Dispara a seleção de Perks Roguelite estilo Archero
@@ -142,15 +257,17 @@ class BattleViewModel extends ChangeNotifier {
     if (completedWave >= current.totalWaves) {
       onMatchVictory();
     } else {
-      // Avança a onda e abre o draft de perks do Archero
+      // Avança a onda, paga a renda de Bits e abre o draft de perks
       final nextWave = completedWave + 1;
       final draft = _generateDraftOptions();
+      final updatedEconomy = current.economy.applyRoundIncome();
       updateState(current.copyWith(
         currentWave: nextWave,
         phase: MatchPhase.perkDraft,
         draftOptions: draft,
+        economy: updatedEconomy,
       ));
-      debugPrint('[BattleVM] Onda $completedWave superada! Avançando para Onda $nextWave');
+      debugPrint('[BattleVM] Onda $completedWave superada! Renda de Bits paga: ${current.economy.totalIncomeBits}');
     }
   }
 
@@ -251,9 +368,14 @@ class BattleViewModel extends ChangeNotifier {
     // Regeneração de Banda de Rede contínua (estilo Clash Royale) baseada em perks
     _bandwidthTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
       final current = state.value;
+      // Geração de tokens contínua pelos processos mineradores
+      final updatedEconomy = current.economy.updateTokenGeneration(0.5);
+
       if (current.phase == MatchPhase.battle && current.bandwidth < current.maxBandwidth) {
         final newBandwidth = (current.bandwidth + current.bandwidthRegenRate).clamp(0.0, current.maxBandwidth);
-        updateState(current.copyWith(bandwidth: newBandwidth));
+        updateState(current.copyWith(bandwidth: newBandwidth, economy: updatedEconomy));
+      } else {
+        updateState(current.copyWith(economy: updatedEconomy));
       }
     });
 

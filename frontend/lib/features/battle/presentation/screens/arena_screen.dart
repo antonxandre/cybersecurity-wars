@@ -9,6 +9,7 @@ import '../widgets/card_dock_widget.dart';
 import '../widgets/match_header_widget.dart';
 import '../widgets/match_result_overlay.dart';
 import '../widgets/node_selection_sheet.dart';
+import '../widgets/panoramic_camera_bar.dart';
 import '../widgets/perk_selection_dialog.dart';
 
 /// Tela principal da Arena de Jogo (combinação do Flame Game Canvas e Overlays Flutter).
@@ -135,6 +136,18 @@ class _ArenaScreenState extends State<ArenaScreen> {
                       state: state,
                       onUndoBuild: () => _viewModel.undoBuild(),
                       onReadyPressed: () => _viewModel.startBattlePhase(),
+                    ),
+                  ),
+
+                  // 2.1. Barra Flutuante de Controle de Câmera Panorâmica
+                  Positioned(
+                    top: 105,
+                    left: 16,
+                    child: PanoramicCameraBar(
+                      onFocusMyGrid: () => _game.focusOnMyGrid(),
+                      onFocusOverview: () => _game.focusOnOverview(),
+                      onFocusOpponent: () => _game.focusOnOpponent(),
+                      onFocusMainframe: () => _game.focusOnMainframe(true),
                     ),
                   ),
 

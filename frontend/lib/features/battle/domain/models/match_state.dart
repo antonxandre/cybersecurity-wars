@@ -1,38 +1,57 @@
 import 'bastion_node.dart';
 import 'game_card.dart';
+import 'mainframe_model.dart';
+import 'match_economy_state.dart';
 import 'roguelite_perk.dart';
+import 'tactical_virus_model.dart';
 
 enum MatchPhase {
-  preparation, // Fase de Build (Legion TD) - sem tráfego inimigo
-  battle,      // Batalha Real-Time em 2 lanes (Clash Royale)
-  perkDraft,   // Pausa tática para escolha de 3 perks (Archero)
-  victory,
-  defeat,
+  preparation, // Fase de Build / Envio de Vírus (Legion TD) - sem tráfego inimigo
+  battle,      // Batalha e colisão em tempo real nos túneis
+  perkDraft,   // Pausa tática para escolha de 3 perks
+  victory,     // Vitória: Mainframe oponente destruído ou todas as ondas superadas
+  defeat,      // Derrota: Mainframe aliado destruído
 }
 
-/// Estado imutável da sessão da partida.
+/// Estado imutável da sessão da partida Multiplayer Legion TD.
 class MatchState {
   final MatchPhase phase;
   final int currentWave;
   final int totalWaves;
-  final double slaPercentage;       // SLA de serviço (derrota se zerar)
-  final double coreAiIntegrity;     // Vida do LLM Core (derrota se zerar)
-  final int cpuBudget;              // Moeda de construção no grid
-  final double bandwidth;           // Energia/Mana de combate em tempo real (0.0 a 10.0)
+  final double slaPercentage;
+  final double coreAiIntegrity;
+  final int cpuBudget;
+  final double bandwidth;
   final double maxBandwidth;
   final int remainingSeconds;
+
+  // Defesas de Grid (Campo Aliado e Campo Oponente)
   final Map<String, BastionNode> nodes;
+  final Map<String, BastionNode> opponentNodes;
+
+  // Mainframes Centrais (O 'Rei' de cada equipe)
+  final MainframeModel mainframeBlue;
+  final MainframeModel mainframeRed;
+
+  // Economia Dupla (Bits e Tokens)
+  final MatchEconomyState economy;
+
+  // Fila de Vírus Táticos despachados
+  final List<TacticalVirusModel> queuedVirusesForOpponent;
+  final List<TacticalVirusModel> queuedVirusesFromOpponent;
+
+  // Cartas e Perks
   final List<GameCard> hand;
   final List<GameCard> deck;
   final List<RoguelitePerk> activePerks;
   final List<RoguelitePerk> draftOptions;
 
-  // Modificadores dinâmicos providos pelos Perks do Archero
+  // Modificadores
   final double damageMultiplier;
   final double bandwidthRegenRate;
   final double damageReduction;
 
-  // Estatísticas da partida para o relatório final
+  // Estatísticas
   final int statsPacketsNeutralized;
   final int statsDurationSeconds;
 
@@ -47,6 +66,12 @@ class MatchState {
     required this.maxBandwidth,
     required this.remainingSeconds,
     required this.nodes,
+    this.opponentNodes = const {},
+    required this.mainframeBlue,
+    required this.mainframeRed,
+    required this.economy,
+    this.queuedVirusesForOpponent = const [],
+    this.queuedVirusesFromOpponent = const [],
     required this.hand,
     required this.deck,
     required this.activePerks,
@@ -59,7 +84,7 @@ class MatchState {
   });
 
   factory MatchState.initial() {
-    return const MatchState(
+    return MatchState(
       phase: MatchPhase.preparation,
       currentWave: 1,
       totalWaves: 3,
@@ -68,8 +93,14 @@ class MatchState {
       cpuBudget: 150,
       bandwidth: 5.0,
       maxBandwidth: 10.0,
-      remainingSeconds: 25,
+      remainingSeconds: 35,
       nodes: {},
+      opponentNodes: {},
+      mainframeBlue: MainframeModel.initial(teamId: 'team_blue'),
+      mainframeRed: MainframeModel.initial(teamId: 'team_red'),
+      economy: MatchEconomyState.initial(),
+      queuedVirusesForOpponent: [],
+      queuedVirusesFromOpponent: [],
       hand: [],
       deck: [],
       activePerks: [],
@@ -93,6 +124,12 @@ class MatchState {
     double? maxBandwidth,
     int? remainingSeconds,
     Map<String, BastionNode>? nodes,
+    Map<String, BastionNode>? opponentNodes,
+    MainframeModel? mainframeBlue,
+    MainframeModel? mainframeRed,
+    MatchEconomyState? economy,
+    List<TacticalVirusModel>? queuedVirusesForOpponent,
+    List<TacticalVirusModel>? queuedVirusesFromOpponent,
     List<GameCard>? hand,
     List<GameCard>? deck,
     List<RoguelitePerk>? activePerks,
@@ -114,6 +151,12 @@ class MatchState {
       maxBandwidth: maxBandwidth ?? this.maxBandwidth,
       remainingSeconds: remainingSeconds ?? this.remainingSeconds,
       nodes: nodes ?? this.nodes,
+      opponentNodes: opponentNodes ?? this.opponentNodes,
+      mainframeBlue: mainframeBlue ?? this.mainframeBlue,
+      mainframeRed: mainframeRed ?? this.mainframeRed,
+      economy: economy ?? this.economy,
+      queuedVirusesForOpponent: queuedVirusesForOpponent ?? this.queuedVirusesForOpponent,
+      queuedVirusesFromOpponent: queuedVirusesFromOpponent ?? this.queuedVirusesFromOpponent,
       hand: hand ?? this.hand,
       deck: deck ?? this.deck,
       activePerks: activePerks ?? this.activePerks,
