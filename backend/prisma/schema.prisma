@@ -1,0 +1,126 @@
+// use prisma-8
+
+enum Role {
+  RED_TEAM
+  BLUE_TEAM
+  CASTER
+  ADMIN
+}
+
+enum ScenarioType {
+  LLM_PROMPT_WAR
+  INFRASTRUCTURE_HARDENING
+  HYBRID_CITADEL
+  SHARED_SECRET_RACE
+}
+
+enum MatchStatus {
+  WAITING
+  IN_PROGRESS
+  FINISHED
+  CANCELLED
+}
+
+enum PortAction {
+  ALLOW_ALL
+  RESTRICT_IP
+  BLOCK
+  HONEYPOT
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+  email           String    @unique
+  username        String    @unique
+  passwordHash    String
+  role            Role      @default(RED_TEAM)
+  failedAttempts  Int       @default(0)
+  lockedUntil     TimestamptzString?
+  refreshTokenHash String?
+  createdAt       TimestamptzString @default(now())
+  updatedAt       temporal.updatedAtString()
+
+  redMatches      Match[]   @relation("RedTeamMatches")
+  blueMatches     Match[]   @relation("BlueTeamMatches")
+  matchEvents     MatchEvent[]
+  auditLogs       AuditLog[]
+}
+
+model Scenario {
+  id              String       @id
+  title           String
+  description     String
+  type            ScenarioType
+  difficultyLevel Int          @default(1)
+  initialPorts    String       // JSON string of initial port statuses
+  secretState     String?      // JSON string of partial secret states
+  createdAt       TimestamptzString @default(now())
+  updatedAt       temporal.updatedAtString()
+
+  matches         Match[]
+  presets         Preset[]
+}
+
+model Preset {
+  id                  String   @id
+  scenarioId          String
+  team                Role     // RED_TEAM or BLUE_TEAM
+  name                String
+  description         String
+  firewallRules       String?  // JSON string
+  systemPromptWrapper String?
+  enableVpn           Boolean  @default(false)
+  enableKeyRotation   Boolean  @default(false)
+  costPoints          Int      @default(0)
+  createdAt           TimestamptzString @default(now())
+
+  scenario            Scenario @relation(fields: [scenarioId], references: [id])
+}
+
+model Match {
+  id              String      @id @onCreate(uuid())
+  scenarioId      String
+  status          MatchStatus @default(WAITING)
+  redPlayerId     Int?
+  bluePlayerId    Int?
+  systemPrompt    String?
+  currentLogprob  Float       @default(0.0) // 0.0 to 1.0 (tension meter)
+  systemSla       Float       @default(100.0) // 0.0 to 100.0%
+  flag            String      // FLAG{...}
+  flagCaptured    Boolean     @default(false)
+  winnerRole      Role?
+  portStates      String      // Current JSON string of port status
+  createdAt       TimestamptzString @default(now())
+  updatedAt       temporal.updatedAtString()
+
+  scenario        Scenario    @relation(fields: [scenarioId], references: [id])
+  redPlayer       User?       @relation("RedTeamMatches", fields: [redPlayerId], references: [id])
+  bluePlayer      User?       @relation("BlueTeamMatches", fields: [bluePlayerId], references: [id])
+  events          MatchEvent[]
+}
+
+model MatchEvent {
+  id          Int      @id @default(autoincrement())
+  matchId     String
+  userId      Int?
+  eventType   String   // 'PROMPT_INJECTION', 'SYSTEM_PATCH', 'PORT_LOCKDOWN', 'VPN_TOGGLE', 'KEY_ROTATION'
+  payload     String   // Sanitized JSON content
+  tensionDelta Float   @default(0.0)
+  createdAt   TimestamptzString @default(now())
+
+  match       Match    @relation(fields: [matchId], references: [id])
+  user        User?    @relation(fields: [userId], references: [id])
+}
+
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int?
+  action      String
+  ipAddress   String
+  userAgent   String?
+  status      String   // 'SUCCESS' or 'FAILURE'
+  details     String?
+  createdAt   TimestamptzString @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id])
+}

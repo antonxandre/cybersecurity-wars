@@ -34,7 +34,7 @@ Cloud (GCP): Servidores Dart no Google Cloud Run gerenciando instâncias de WebS
 
 Banco de Dados: Cloud SQL (PostgreSQL) para ranking global, MM (Matchmaking) e gestão de Guildas.
 
-Motor LLM:
+Motor LLM (em breve):
 
 Local/Offline Mode: Integração direta com Ollama para treinamento solo e testes de vulnerabilidade sem custo.
 
@@ -44,7 +44,6 @@ Online Arena: Google Vertex AI para provisionamento dos modelos (Llama 3, Mistra
 Pré-requisitos:
 - Flutter SDK (versão 3.19+)
 - Dart SDK
-- Ollama instalado e rodando localmente (para o modo offline)
 
 ---
 
@@ -53,10 +52,17 @@ Pré-requisitos:
 Para uma descrição aprofundada dos três eixos de engenharia e segurança, consulte o documento técnico:
 👉 [docs/arquitetura_e_diretrizes.md](file:///Users/antonxandre/cybersecurity_project/docs/arquitetura_e_diretrizes.md)
 
+Para conferir o planejamento de expansão, trilhas de níveis de infraestrutura (VPN/Firewall), estratégias pré-definidas (Blue/Red Team) e novos cenários de jogo:
+👉 [docs/ideias_cenarios_e_mecanicas.md](file:///Users/antonxandre/cybersecurity_project/docs/ideias_cenarios_e_mecanicas.md)
+
+* **Backend API (NestJS):** Servidor NestJS em TypeScript/ESM com Prisma ORM (PostgreSQL), WebSockets Socket.IO para partidas em tempo real, Helmet, Argon2id, rate limiting e mitigação OWASP Top 10:2025.
 * **Eixo 1 (Infraestrutura Cloud):** Instâncias Docker no Google Cloud Platform (GCP - Compute Engine Ubuntu Server 24.04 LTS), com Nginx (Reverse Proxy, SSL/TLS Let's Encrypt para IP público, suporte a PQC), firewall restritivo, acesso via chave SSH e Fail2Ban (4 erros, ban de 24h).
 * **Eixo 2 (Repositório Seguro):** Repositório público no GitHub com autenticação 2FA/SSH, branch protection rules na `main`, secret scanning ativo, `.gitignore` blindado e secrets encriptados via GitHub Secrets.
 * **Eixo 3 (Desenvolvimento Web):** Frontend desenvolvido em Flutter Web com assistência de IA via Google Antigravity IDE, contendo tela de Login, Página Interna (Arena de Jogo) e Logout funcional.
 * **CI/CD:** Esteira automatizada no GitHub Actions para build do Flutter Web, geração da imagem Docker e deploy seguro via SSH na nuvem a cada push na branch `main`.
+
+Para orientações dos Agentes de IA e catálogo completo de Skills disponíveis:
+👉 [AGENTS.md](file:///Users/antonxandre/cybersecurity_project/AGENTS.md)
 
 ---
 

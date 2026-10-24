@@ -1,0 +1,64 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: promptsec_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-promptsec}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-promptsec_secret_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-promptsec_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-promptsec} -d ${POSTGRES_DB:-promptsec_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - promptsec_net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: promptsec_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-promptsec}:${POSTGRES_PASSWORD:-promptsec_secret_pass}@postgres:5432/${POSTGRES_DB:-promptsec_db}?schema=public
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-promptsec-arena-access-secret-32-chars-long}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-promptsec-arena-refresh-secret-32-chars-long}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080,http://127.0.0.1:8080}
+    expose:
+      - "3000"
+    networks:
+      - promptsec_net
+
+  nginx:
+    image: nginx:alpine
+    container_name: promptsec_nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - certbot_certs:/etc/letsencrypt:ro
+      - certbot_data:/var/www/certbot:ro
+    networks:
+      - promptsec_net
+
+volumes:
+  postgres_data:
+  certbot_certs:
+  certbot_data:
+
+networks:
+  promptsec_net:
+    driver: bridge

@@ -1,0 +1,64 @@
+# =============================================================
+# Eixo 2: DevSecOps & Proteção Anti-Vazamento (PromptSec Arena)
+# =============================================================
+
+# Environment variables & secrets (NEVER COMMIT)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+!.env.example
+
+# SSH Private Keys & Certificates
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Cloud Provider Credentials (GCP, AWS, etc.)
+service-account*.json
+*credentials*.json
+client_secrets*.json
+gcp-key*.json
+
+# Node & NestJS build artifacts
+node_modules/
+dist/
+dist-ssr/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.npm/
+
+# Dart & Flutter artifacts
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+*.ephemeral/
+
+# IDE & OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Testing & Coverage
+coverage/
+.nyc_output/
+*.lcov
