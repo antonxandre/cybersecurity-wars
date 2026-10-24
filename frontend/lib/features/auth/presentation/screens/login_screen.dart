@@ -52,7 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!res.success) {
         setState(() => _errorMessage = res.errorMessage);
       } else {
-        context.go('/hub');
+        context.go('/lobby');
       }
     } else {
       final res = await auth.login(
@@ -65,14 +65,14 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!res.success) {
         setState(() => _errorMessage = res.errorMessage);
       } else {
-        context.go('/hub');
+        context.go('/lobby');
       }
     }
   }
 
   void _quickDemoLogin(UserRole role) {
     AuthService.instance.loginDemo(role);
-    context.go('/hub');
+    context.go('/lobby');
   }
 
   @override

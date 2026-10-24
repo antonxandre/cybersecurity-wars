@@ -4,7 +4,6 @@ import '../../features/auth/domain/services/auth_service.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/battle/presentation/screens/arena_screen.dart';
 import '../../features/lobby/presentation/screens/game_lobby_screen.dart';
-import '../../features/scenarios/presentation/screens/scenario_hub_screen.dart';
 
 /// Configuração do roteador declarativo com Route Guards reativos (OWASP A01:2025).
 final GoRouter appRouter = GoRouter(
@@ -40,7 +39,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/hub',
       name: 'hub',
-      builder: (context, state) => const ScenarioHubScreen(),
+      redirect: (context, state) => '/lobby',
     ),
     GoRoute(
       path: '/arena',

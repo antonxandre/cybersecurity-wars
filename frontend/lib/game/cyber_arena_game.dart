@@ -109,6 +109,7 @@ class CyberArenaGame extends FlameGame with PanDetector, ScrollDetector {
     });
   }
 
+
   // --- Controles de Navegação Panorâmica por Gestos (Pan e Zoom) ---
 
   @override
