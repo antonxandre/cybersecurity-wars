@@ -2,7 +2,6 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../game/cyber_arena_game.dart';
-import '../../domain/models/bastion_node.dart';
 import '../../domain/models/match_state.dart';
 import '../viewmodels/battle_view_model.dart';
 import '../widgets/bandwidth_meter_widget.dart';

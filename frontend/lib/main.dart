@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
+import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
-import 'features/battle/presentation/screens/arena_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  usePathUrlStrategy();
   runApp(const PromptSecArenaApp());
 }
 
@@ -12,11 +14,12 @@ class PromptSecArenaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'PromptSec Arena (CyberWars)',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
-      home: const ArenaScreen(),
+      routerConfig: appRouter,
     );
   }
 }
+

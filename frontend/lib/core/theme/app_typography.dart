@@ -28,6 +28,19 @@ class AppTypography {
     letterSpacing: 1.0,
   );
 
+  static TextStyle titleLarge = GoogleFonts.orbitron(
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    color: AppColors.textPrimary,
+    letterSpacing: 1.0,
+  );
+
+  static TextStyle titleMedium = GoogleFonts.orbitron(
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    color: AppColors.textPrimary,
+  );
+
   // Corpo de Texto
   static TextStyle bodyLarge = GoogleFonts.inter(
     fontSize: 15,

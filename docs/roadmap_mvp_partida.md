@@ -220,6 +220,39 @@ graph TD
 
 ---
 
+### 🛡️ ÉPICO 6: Arquitetura Web Segura, Autenticação e Navegação Declarativa (Eixo 3 - AGENTS.md)
+> **Objetivo:** Cumprir os requisitos mandatórios do Eixo 3 do projeto: Rotas declarativas (`/login`, `/hub`, `/arena`), Route Guards reativos contra acesso indevido (OWASP A01:2025), tela de autenticação segura com prevenção contra enumeração de usuários (OWASP A07:2025), Hub de Cenários e Ação de Logout com destruição de sessão.
+
+- [x] **Task 6.1: Roteamento Declarativo com `GoRouter` e Route Guards Reativos (OWASP A01)**
+  * **Descrição:** Configurar `appRouter` com `redirect` dinâmico monitorando `AuthService.instance`. Usuários não autenticados que tentarem acessar rotas restritas (`/hub`, `/arena`) são bloqueados e redirecionados a `/login`.
+  * **Critérios de Aceite:**
+    * URLs amigáveis com `usePathUrlStrategy()` (sem hash fragment `/#/`).
+    * Bloqueio imediato de acesso não autorizado sem renderização da arena.
+  * **Arquivos:** `lib/core/router/app_router.dart`, `lib/main.dart`.
+
+- [x] **Task 6.2: Autenticação Tática com Proteção Anti-Enumeração (OWASP A07)**
+  * **Descrição:** Implementar tela `/login` com seleção de equipe de combate (Blue Team / Red Team), alternador entre login e cadastro, sanitização de entrada contra injection (OWASP A03), integração com a API NestJS e fallback gracioso com login de demonstração em 1 clique.
+  * **Critérios de Aceite:**
+    * Mensagens de erro padronizadas e genéricas sem revelar existência de email (mitigação de enumeração de usuário).
+    * Estética gamer cyberpunk neon com brilhos reativos de acordo com o time selecionado.
+  * **Arquivos:** `lib/features/auth/presentation/screens/login_screen.dart`, `lib/features/auth/domain/services/auth_service.dart`.
+
+- [x] **Task 6.3: Hub Tático de Seleção de Cenários (`/hub`)**
+  * **Descrição:** Apresentar catálogo de cenários oficiais derivados de `docs/ideias_cenarios_e_mecanicas.md` (Hardening de Instância Web, A Cidadela Híbrida: Bastion de IA, A Chave Roubada: Corrida Cripto, Queda de VPN & Ataque MitM), exibindo objetivos táticos específicos para o papel do jogador (Red ou Blue Team) e botão de lançamento de simulação.
+  * **Critérios de Aceite:**
+    * Exibe status do perímetro e objetivos personalizados conforme `AuthUser.role`.
+    * Botão "INICIAR SIMULAÇÃO" que navega para `/arena`.
+  * **Arquivos:** `lib/features/scenarios/presentation/screens/scenario_hub_screen.dart`, `lib/features/scenarios/domain/models/scenario_model.dart`.
+
+- [x] **Task 6.4: Ação e Fluxo Completo de Logout com Invalidação de Sessão**
+  * **Descrição:** Botão de logout persistente no cabeçalho do Hub e botão de retorno no cabeçalho da Arena (`MatchHeaderWidget`) e overlay de resultado (`MatchResultOverlay`), destruindo tokens JWT e redirecionando para `/login`.
+  * **Critérios de Aceite:**
+    * Limpeza de tokens e redefinição de estado no `AuthService`.
+    * Retorno imediato à tela de login via Route Guard reativo.
+  * **Arquivos:** `lib/features/scenarios/presentation/screens/scenario_hub_screen.dart`, `lib/features/battle/presentation/widgets/match_header_widget.dart`, `lib/features/battle/presentation/widgets/match_result_overlay.dart`.
+
+---
+
 ## 📅 4. Ordem Recomendada de Implementação (Sprints)
 
 ```text
@@ -241,6 +274,13 @@ graph TD
 │ • Despacho de cartas direto na rota com consumo de energia   │
 │ • Pausa entre ondas com escolha de 3 perks (Archero)        │
 │ • Telas de Vitória/Derrota e botão "Jogar Novamente"        │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+┌──────────────────────────────▼──────────────────────────────┐
+│ SPRINT 4: Eixo 3 DevSec - Auth, Route Guards & Hub Cenários  │
+│ • Declarative routing com GoRouter e Guards reativos (A01)  │
+│ • Login com seleção Red/Blue e anti-enumeração (A07)        │
+│ • Scenario Hub com objetivos por papel e Ação de Logout     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -249,11 +289,13 @@ graph TD
 ## ✅ 5. Critério de Aceite Final do MVP
 
 Uma demonstração do MVP é considerada **100% concluída com sucesso** quando um testador for capaz de:
-1. Abrir a aplicação no navegador ou simulador.
-2. Gastar seus 150 pontos de CPU colocando 2 Firewalls no grid durante a preparação.
-3. Desfazer um dos nós com o botão de Undo e receber o CPU de volta.
-4. Clicar em "PRONTO" e ver os pacotes de rede da Onda 1 começarem a descer pelas rotas.
-5. Ver os firewalls detectando e disparando lasers contra os pacotes maliciosos.
-6. Despachar uma carta de "Hot-Patch" ou "SYN Flooder" gastando Banda de Rede.
-7. Vencer a Onda 1, receber o modal com 3 Perks, escolher um modificador e ver seus efeitos ativos na Onda 2.
-8. Chegar ao fim da Onda 3 e visualizar a tela de Vitória com o resumo estatístico da partida, podendo reiniciar em seguida.
+1. Abrir a aplicação no navegador em `/login`.
+2. Efetuar login com email corporativo ou selecionar modo Demo Blue/Red.
+3. Ser recepcionado no **Hub Tático de Cenários** (`/hub`) visualizando sua identificação e objetivos operacionais.
+4. Escolher um cenário e clicar em "INICIAR SIMULAÇÃO" para entrar na **Arena** (`/arena`).
+5. Gastar seus pontos de CPU posicionando nós de defesa na grade durante a fase de preparação.
+6. Clicar em "PRONTO" e combater as ondas de invasores com disparos de laser, despacho de cartas de contenção e mitigação de danos ao LLM Core e ao SLA.
+7. Escolher Perks táticos entre as ondas para customizar seus atributos táticos.
+8. Ao término do combate (Vitória ou Derrota), visualizar o relatório final e optar por reiniciar a partida ou retornar ao Hub.
+9. No Hub, acionar o botão "SAIR" e comprovar a destruição completa da sessão e redirecionamento de volta ao `/login`.
+

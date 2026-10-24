@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/models/match_state.dart';
@@ -39,9 +40,18 @@ class MatchHeaderWidget extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Indicador de Fase e Onda
+                // Indicador de Fase e Onda com Botão Voltar ao Hub
                 Row(
                   children: [
+                    IconButton(
+                      tooltip: 'Retornar ao Hub Tático',
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: AppColors.textSecondary),
+                      onPressed: () => context.go('/hub'),
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    const SizedBox(width: 8),
                     _buildPhaseBadge(),
                     const SizedBox(width: 8),
                     Text(

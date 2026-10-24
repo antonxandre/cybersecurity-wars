@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/models/match_state.dart';
@@ -153,30 +154,51 @@ class MatchResultOverlay extends StatelessWidget {
                   ),
                 ],
 
-                const SizedBox(height: 28),
-                // Botão Jogar Novamente
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
-                      foregroundColor: AppColors.background,
-                      elevation: 8,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                const SizedBox(height: 24),
+                // Botões de Ação Final
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 46,
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: AppColors.border),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          onPressed: () => context.go('/hub'),
+                          icon: const Icon(Icons.hub_rounded, size: 16),
+                          label: Text('HUB', style: AppTypography.codeSmall),
+                        ),
                       ),
                     ),
-                    onPressed: onPlayAgain,
-                    icon: const Icon(Icons.replay_rounded),
-                    label: Text(
-                      'JOGAR NOVAMENTE',
-                      style: AppTypography.codeMedium.copyWith(
-                        color: AppColors.background,
-                        fontWeight: FontWeight.bold,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: SizedBox(
+                        height: 46,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            foregroundColor: AppColors.background,
+                            elevation: 8,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onPressed: onPlayAgain,
+                          icon: const Icon(Icons.replay_rounded),
+                          label: Text(
+                            'JOGAR NOVAMENTE',
+                            style: AppTypography.codeMedium.copyWith(
+                              color: AppColors.background,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ],
             ),

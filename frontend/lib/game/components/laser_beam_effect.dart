@@ -9,8 +9,6 @@ class LaserBeamEffect extends PositionComponent {
   final double duration;
 
   double _elapsed = 0.0;
-  late final Paint _corePaint;
-  late final Paint _glowPaint;
 
   LaserBeamEffect({
     required this.start,
@@ -18,24 +16,6 @@ class LaserBeamEffect extends PositionComponent {
     required this.beamColor,
     this.duration = 0.16,
   }) : super(priority: 10);
-
-  @override
-  Future<void> onLoad() async {
-    await super.onLoad();
-
-    _corePaint = Paint()
-      ..color = const Color(0xFFFFFFFF)
-      ..strokeWidth = 2.0
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-
-    _glowPaint = Paint()
-      ..color = beamColor.withOpacity(0.8)
-      ..strokeWidth = 6.0
-      ..strokeCap = StrokeCap.round
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4)
-      ..style = PaintingStyle.stroke;
-  }
 
   @override
   void update(double dt) {
