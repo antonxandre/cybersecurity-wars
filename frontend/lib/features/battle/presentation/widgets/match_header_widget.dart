@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/fullscreen_helper.dart';
 import '../../domain/models/match_state.dart';
 
 /// Cabeçalho superior com Telemetria, Cronômetro, SLA e Integridade do Core.
@@ -82,10 +83,10 @@ class MatchHeaderWidget extends StatelessWidget {
                     ],
                   ),
                 ),
-                // Botão de Ação rápida da Fase (Desfazer ou Pronto)
-                if (state.phase == MatchPhase.preparation)
-                  Row(
-                    children: [
+                // Botão de Ação rápida da Fase (Desfazer ou Pronto) e Tela Cheia
+                Row(
+                  children: [
+                    if (state.phase == MatchPhase.preparation) ...[
                       IconButton(
                         tooltip: 'Desfazer Última Construção',
                         icon: const Icon(Icons.undo_rounded, color: AppColors.textSecondary),
@@ -101,12 +102,7 @@ class MatchHeaderWidget extends StatelessWidget {
                         onPressed: onReadyPressed,
                         child: const Text('PRONTO'),
                       ),
-                    ],
-                  )
-                else
-                  // Moeda CPU / Clock Cycles
-                  Row(
-                    children: [
+                    ] else ...[
                       const Icon(Icons.memory_rounded, size: 16, color: AppColors.cpuClock),
                       const SizedBox(width: 4),
                       Text(
@@ -114,7 +110,15 @@ class MatchHeaderWidget extends StatelessWidget {
                         style: AppTypography.codeSmall.copyWith(color: AppColors.cpuClock),
                       ),
                     ],
-                  ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      tooltip: 'Alternar Tela Cheia (Fullscreen)',
+                      icon: const Icon(Icons.fullscreen_rounded, size: 20, color: AppColors.textSecondary),
+                      onPressed: FullscreenHelper.toggleFullscreen,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
+                ),
               ],
             ),
             const SizedBox(height: 8),

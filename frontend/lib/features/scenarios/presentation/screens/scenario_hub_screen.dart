@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/fullscreen_helper.dart';
 import '../../../auth/domain/models/auth_user.dart';
 import '../../../auth/domain/services/auth_service.dart';
 import '../../domain/models/scenario_model.dart';
@@ -169,6 +170,14 @@ class ScenarioHubScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
+
+          // Botão Alternar Tela Cheia
+          IconButton(
+            tooltip: 'Alternar Tela Cheia (Fullscreen)',
+            icon: const Icon(Icons.fullscreen_rounded, size: 22, color: AppColors.textSecondary),
+            onPressed: FullscreenHelper.toggleFullscreen,
+          ),
+          const SizedBox(width: 6),
 
           // Botão de Logout com Destruição de Sessão
           OutlinedButton.icon(
