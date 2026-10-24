@@ -84,8 +84,10 @@ class BattleViewModel extends ChangeNotifier {
     final current = state.value;
     if (current.phase != MatchPhase.battle) return;
 
-    final newIntegrity = (current.coreAiIntegrity - damage).clamp(0.0, 100.0);
-    debugPrint('[BattleVM] DANO NO CORE: -$damage! Integridade restante: $newIntegrity%');
+    // Redução de dano concedida por perks pós-quânticos (PQC Shield)
+    final effectiveDamage = (damage * (1.0 - current.damageReduction)).clamp(0.0, damage);
+    final newIntegrity = (current.coreAiIntegrity - effectiveDamage).clamp(0.0, 100.0);
+    debugPrint('[BattleVM] DANO NO CORE: -$effectiveDamage (Original: $damage, Redução: ${current.damageReduction * 100}%). Restante: $newIntegrity%');
 
     if (newIntegrity <= 0) {
       updateState(current.copyWith(
@@ -96,6 +98,14 @@ class BattleViewModel extends ChangeNotifier {
     } else {
       updateState(current.copyWith(coreAiIntegrity: newIntegrity));
     }
+  }
+
+  /// Incrementa contador de pacotes invasores neutralizados pelos bastiões
+  void onPacketNeutralized() {
+    final current = state.value;
+    updateState(current.copyWith(
+      statsPacketsNeutralized: current.statsPacketsNeutralized + 1,
+    ));
   }
 
   /// Bonifica o SLA quando tráfego legítimo HTTPS é entregue com sucesso
@@ -160,33 +170,21 @@ class BattleViewModel extends ChangeNotifier {
     debugPrint('[BattleVM] Partida reiniciada.');
   }
 
+  /// Sorteia 3 opções únicas de Perks Roguelite estilo Archero
   List<RoguelitePerk> _generateDraftOptions() {
-    return const [
-      RoguelitePerk(
-        id: 'pqc_shield',
-        name: 'Algoritmo PQC',
-        description: '+40% de blindagem criptográfica quântica contra quebra de chaves.',
-        category: PerkCategory.defense,
-        tier: 1,
-        icon: Icons.shield_rounded,
-      ),
-      RoguelitePerk(
-        id: 'cpu_overclock',
-        name: 'Overclock de CPU',
-        description: 'Recupera Banda de Rede 25% mais rápido durante o combate.',
-        category: PerkCategory.economy,
-        tier: 2,
-        icon: Icons.bolt_rounded,
-      ),
-      RoguelitePerk(
-        id: 'regex_deep_inspect',
-        name: 'Inspeção Semântica',
-        description: 'Neutraliza o primeiro payload de Prompt Injection recebido pela IA.',
-        category: PerkCategory.aiGuard,
-        tier: 3,
-        icon: Icons.psychology_rounded,
-      ),
-    ];
+    final catalog = List<RoguelitePerk>.from(RoguelitePerk.catalog);
+    // Prioriza perks que o jogador ainda não possui
+    final available = catalog
+        .where((p) => !state.value.activePerks.any((active) => active.id == p.id))
+        .toList();
+
+    available.shuffle();
+    if (available.length >= 3) {
+      return available.take(3).toList();
+    }
+
+    catalog.shuffle();
+    return catalog.take(3).toList();
   }
 
   void _initializeInitialDeckAndHand() {
@@ -250,24 +248,29 @@ class BattleViewModel extends ChangeNotifier {
   }
 
   void _startTimers() {
-    // Regeneração de Banda de Rede contínua (estilo Clash Royale)
+    // Regeneração de Banda de Rede contínua (estilo Clash Royale) baseada em perks
     _bandwidthTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
       final current = state.value;
       if (current.phase == MatchPhase.battle && current.bandwidth < current.maxBandwidth) {
-        final newBandwidth = (current.bandwidth + 0.35).clamp(0.0, current.maxBandwidth);
+        final newBandwidth = (current.bandwidth + current.bandwidthRegenRate).clamp(0.0, current.maxBandwidth);
         updateState(current.copyWith(bandwidth: newBandwidth));
       }
     });
 
-    // Cronômetro da partida
+    // Cronômetro da partida e telemetria de duração
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       final current = state.value;
-      if (current.remainingSeconds > 0) {
-        updateState(current.copyWith(remainingSeconds: current.remainingSeconds - 1));
-      } else if (current.phase == MatchPhase.preparation) {
-        startBattlePhase();
-      } else if (current.phase == MatchPhase.battle) {
-        triggerPerkDraft();
+      if (current.phase == MatchPhase.battle) {
+        updateState(current.copyWith(
+          statsDurationSeconds: current.statsDurationSeconds + 1,
+        ));
+      } else if (current.phase == MatchPhase.preparation && current.remainingSeconds > 0) {
+        final nextSec = current.remainingSeconds - 1;
+        if (nextSec <= 0) {
+          startBattlePhase();
+        } else {
+          updateState(current.copyWith(remainingSeconds: nextSec));
+        }
       }
     });
   }

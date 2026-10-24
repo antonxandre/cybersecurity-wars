@@ -38,7 +38,7 @@ class CyberArenaGame extends FlameGame {
     final gridWidth = size.x.clamp(320.0, 480.0);
     final gridHeight = size.y * 0.72;
     final gridX = (size.x - gridWidth) / 2;
-    final gridY = 70.0;
+    const gridY = 70.0;
 
     _gridComponent = NetworkGridComponent(
       position: Vector2(gridX, gridY),
@@ -63,12 +63,14 @@ class CyberArenaGame extends FlameGame {
 
   void _spawnCardPackets(GameCard card, int lane) {
     final cellWidth = _gridComponent.size.x / _gridComponent.columns;
-    final targetX = _gridComponent.position.x + (lane == 0 ? cellWidth * 1.0 : cellWidth * 3.0);
+    final targetX = _gridComponent.position.x +
+        (lane == 0 ? cellWidth * 1.0 : cellWidth * 3.0);
     final startY = _gridComponent.position.y + _gridComponent.size.y - 20;
 
-    final origin = card.type == CardType.exploit || card.type == CardType.payload
-        ? PacketOrigin.redExploit
-        : PacketOrigin.blueDefense;
+    final origin =
+        card.type == CardType.exploit || card.type == CardType.payload
+            ? PacketOrigin.redExploit
+            : PacketOrigin.blueDefense;
 
     // Dispara rajada de pacotes táticos subindo na rota selecionada
     for (int i = 0; i < 3; i++) {
@@ -88,7 +90,9 @@ class CyberArenaGame extends FlameGame {
 
   void _attachPacketCallbacks(DataPacketComponent packet) {
     // Quando o pacote alcança o fim de sua trajetória
-    packet.onReachedEnd ??= (p) {
+    final existingCallback = packet.onReachedEnd;
+    packet.onReachedEnd = (p) {
+      existingCallback?.call(p);
       if (p.origin == PacketOrigin.redExploit) {
         // Pacote inimigo atingiu o Core da base!
         viewModel.onCoreDamaged(p.damage);
@@ -97,6 +101,23 @@ class CyberArenaGame extends FlameGame {
         viewModel.onClientDelivered();
       }
     };
+
+    // Quando um pacote inimigo é destruído por lasers ou colisões
+    final existingDestroyed = packet.onDestroyed;
+    packet.onDestroyed = (p) {
+      existingDestroyed?.call(p);
+      if (p.origin == PacketOrigin.redExploit) {
+        viewModel.onPacketNeutralized();
+      }
+    };
+  }
+
+  /// Limpa todos os componentes e reinicia a simulação para nova partida
+  void resetGame() {
+    _spawner.reset();
+    children.whereType<DataPacketComponent>().forEach((p) => p.removeFromParent());
+    _nodeAttackTimers.clear();
+    clearGridSelection();
   }
 
   @override
@@ -111,7 +132,9 @@ class CyberArenaGame extends FlameGame {
         _spawner.startWave(state.currentWave);
       } else if (state.phase == MatchPhase.preparation) {
         // Limpa pacotes remanescentes na transição de volta para o Turno Zero
-        children.whereType<DataPacketComponent>().forEach((p) => p.removeFromParent());
+        children
+            .whereType<DataPacketComponent>()
+            .forEach((p) => p.removeFromParent());
       }
       _lastPhase = state.phase;
     }
@@ -165,8 +188,12 @@ class CyberArenaGame extends FlameGame {
       if (_nodeAttackTimers[node.id]! < cadence) continue;
 
       // Posição no mundo do nó
-      final nodeCenterX = _gridComponent.position.x + (node.gridX * cellWidth) + (cellWidth / 2);
-      final nodeCenterY = _gridComponent.position.y + (node.gridY * cellHeight) + (cellHeight / 2);
+      final nodeCenterX = _gridComponent.position.x +
+          (node.gridX * cellWidth) +
+          (cellWidth / 2);
+      final nodeCenterY = _gridComponent.position.y +
+          (node.gridY * cellHeight) +
+          (cellHeight / 2);
       final nodePos = Vector2(nodeCenterX, nodeCenterY);
 
       // Encontra o pacote mais próximo dentro do attackRange
@@ -191,8 +218,9 @@ class CyberArenaGame extends FlameGame {
           ),
         );
 
-        // Aplica o dano no pacote
-        closestTarget.takeDamage(node.attackDamage);
+        // Aplica o dano no pacote potencializado por modificadores de perks
+        final boostedDamage = node.attackDamage * viewModel.state.value.damageMultiplier;
+        closestTarget.takeDamage(boostedDamage);
         _nodeAttackTimers[node.id] = 0.0;
       }
     }

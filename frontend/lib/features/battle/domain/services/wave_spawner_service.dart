@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart';
-import '../../../game/components/data_packet_component.dart';
+import 'package:promptsec_arena_front/game/components/data_packet_component.dart';
 
 /// Serviço responsável pelo escalonamento e geração de ondas de ataque (Wave Spawner).
 class WaveSpawnerService {
@@ -18,7 +18,7 @@ class WaveSpawnerService {
   int get totalPacketsInCurrentWave {
     switch (currentWave) {
       case 1:
-        return 8;  // Onda 1: 8 Scanners
+        return 8; // Onda 1: 8 Scanners
       case 2:
         return 14; // Onda 2: 14 SYN Floods
       case 3:
@@ -48,7 +48,8 @@ class WaveSpawnerService {
     _spawnTimer = 0.0;
     _clientTimer = 0.0;
     _isWaveFinished = false;
-    debugPrint('[WaveSpawner] Iniciando Onda $currentWave com $totalPacketsInCurrentWave pacotes');
+    debugPrint(
+        '[WaveSpawner] Iniciando Onda $currentWave com $totalPacketsInCurrentWave pacotes');
   }
 
   void update({
@@ -104,7 +105,8 @@ class WaveSpawnerService {
             onDestroyed: (_) => aliveEnemies--,
             onReachedEnd: (_) => aliveEnemies--,
           );
-        } else if (currentWave == 2 || (currentWave == 3 && packetsSpawnedInWave % 3 == 0)) {
+        } else if (currentWave == 2 ||
+            (currentWave == 3 && packetsSpawnedInWave % 3 == 0)) {
           // Pacote SYN Flood (rápido e frágil)
           enemyPacket = DataPacketComponent(
             startPosition: Vector2(targetX, startY),

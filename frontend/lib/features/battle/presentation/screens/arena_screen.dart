@@ -8,6 +8,7 @@ import '../viewmodels/battle_view_model.dart';
 import '../widgets/bandwidth_meter_widget.dart';
 import '../widgets/card_dock_widget.dart';
 import '../widgets/match_header_widget.dart';
+import '../widgets/match_result_overlay.dart';
 import '../widgets/node_selection_sheet.dart';
 import '../widgets/perk_selection_dialog.dart';
 
@@ -165,6 +166,18 @@ class _ArenaScreenState extends State<ArenaScreen> {
                       ],
                     ),
                   ),
+
+                  // 4. Overlay de Fim de Partida (Vitória ou Derrota)
+                  if (state.phase == MatchPhase.victory || state.phase == MatchPhase.defeat)
+                    Positioned.fill(
+                      child: MatchResultOverlay(
+                        state: state,
+                        onPlayAgain: () {
+                          _viewModel.resetMatch();
+                          _game.resetGame();
+                        },
+                      ),
+                    ),
                 ],
               );
             },

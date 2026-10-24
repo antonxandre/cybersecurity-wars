@@ -161,7 +161,7 @@ class DeployCardCommand extends GameCommand<BattleViewModel> {
   }
 }
 
-/// Comando para Selecionar Perk Roguelite (Archero).
+/// Comando para Selecionar Perk Roguelite (Archero) e aplicar seus modificadores no jogo.
 class SelectPerkCommand extends GameCommand<BattleViewModel> {
   final RoguelitePerk perk;
 
@@ -180,12 +180,64 @@ class SelectPerkCommand extends GameCommand<BattleViewModel> {
     final state = vm.state.value;
     final updatedPerks = List<RoguelitePerk>.from(state.activePerks)..add(perk);
 
-    // Retoma a partida para a próxima fase de batalha ou turno de preparação
+    // Aplica o modificador correspondente do perk aos atributos globais
+    double damageMultiplier = state.damageMultiplier;
+    double bandwidthRegenRate = state.bandwidthRegenRate;
+    double damageReduction = state.damageReduction;
+    double maxBandwidth = state.maxBandwidth;
+    double sla = state.slaPercentage;
+
+    switch (perk.id) {
+      case 'pqc_shield':
+        damageReduction = (damageReduction + 0.40).clamp(0.0, 0.85);
+        break;
+      case 'cpu_overclock':
+        bandwidthRegenRate += 0.20;
+        break;
+      case 'laser_amplifier':
+        damageMultiplier += 0.35;
+        break;
+      case 'regex_deep_inspect':
+        damageReduction = (damageReduction + 0.25).clamp(0.0, 0.85);
+        break;
+      case 'honeypot_reflect':
+        damageMultiplier += 0.25;
+        break;
+      case 'bandwidth_cache':
+        maxBandwidth = 12.0;
+        break;
+      case 'sla_guardian':
+        sla = (sla + 20.0).clamp(0.0, 100.0);
+        break;
+    }
+
+    // Retoma a partida para a próxima fase de batalha com os modificadores aplicados
     vm.updateState(state.copyWith(
       phase: MatchPhase.battle,
       activePerks: updatedPerks,
       draftOptions: [],
+      damageMultiplier: damageMultiplier,
+      bandwidthRegenRate: bandwidthRegenRate,
+      damageReduction: damageReduction,
+      maxBandwidth: maxBandwidth,
+      slaPercentage: sla,
     ));
-    debugPrint('[SelectPerkCommand] Perk selecionado: ${perk.name}');
+    debugPrint('[SelectPerkCommand] Perk ${perk.name} aplicado! DanoMult=$damageMultiplier, RegenRate=$bandwidthRegenRate');
+  }
+}
+
+/// Comando para Reiniciar a Partida (Reset / Play Again).
+class ResetMatchCommand extends GameCommand<BattleViewModel> {
+  const ResetMatchCommand();
+
+  @override
+  String get commandType => 'RESET_MATCH';
+
+  @override
+  bool canExecute(BattleViewModel vm) => true;
+
+  @override
+  Future<void> execute(BattleViewModel vm) async {
+    vm.resetMatch();
   }
 }

@@ -153,14 +153,14 @@ graph TD
 ### 🃏 ÉPICO 3: Controles da Mão de Cartas & Drag-to-Lane
 > **Objetivo:** Refinar a jogabilidade estilo Clash Royale, tornando intuitivo disparar cartas diretamente nas lanes.
 
-- [ ] **Task 3.1: Toque Direto ou Arrastar para Lane**
+- [x] **Task 3.1: Toque Direto ou Arrastar para Lane**
   * **Descrição:** Permitir que o jogador toque em uma carta no dock e toque diretamente na Lane 1 ou Lane 2 no tabuleiro para despachá-la, ou mantenha a folha rápida de seleção com visual gamer cyberpunk.
   * **Critérios de Aceite:**
     * A carta só é despachada se `bandwidth >= card.bandwidthCost`.
     * A energia de banda é deduzida instantaneamente na barra superior.
   * **Arquivos:** `lib/features/battle/presentation/widgets/card_dock_widget.dart`, `lib/game/cyber_arena_game.dart`.
 
-- [ ] **Task 3.2: Animação de Ciclo de Cartas**
+- [x] **Task 3.2: Animação de Ciclo de Cartas**
   * **Descrição:** Quando uma carta é jogada, ela sai da mão com animação de fade/slide para a esquerda e uma nova carta do deck entra pela direita.
   * **Critérios de Aceite:**
     * A mão sempre mantém exatamente 4 cartas ativas.
@@ -172,14 +172,14 @@ graph TD
 ### 🏹 ÉPICO 4: Progressão Roguelite Pós-Onda (Archero)
 > **Objetivo:** Recompensar a sobrevivência a cada onda com modificadores cumulativos que alteram o comportamento da partida.
 
-- [ ] **Task 4.1: Gatilho de Vitória de Onda e Pausa Tática**
+- [x] **Task 4.1: Gatilho de Vitória de Onda e Pausa Tática**
   * **Descrição:** Ao derrotar todos os inimigos da Onda 1 ou 2, pausar a simulação do Flame e abrir automaticamente o modal `PerkSelectionDialog`.
   * **Critérios de Aceite:**
     * O jogo pausa completamente (pacotes param de se mover).
     * O modal exibe 3 opções sorteadas de um catálogo de 8+ perks.
   * **Arquivos:** `lib/features/battle/presentation/screens/arena_screen.dart`.
 
-- [ ] **Task 4.2: Efeito Prático dos Perks nos Atributos**
+- [x] **Task 4.2: Efeito Prático dos Perks nos Atributos**
   * **Descrição:** Conectar o efeito do perk escolhido aos cálculos da partida:
     * *Overclock de CPU:* Aumenta a taxa de regeneração de banda de 0.35 para 0.50 por tick.
     * *PQC Guard:* Reduz em 50% todo dano que atingir o Core.
@@ -194,7 +194,7 @@ graph TD
 ### 🏆 ÉPICO 5: Condições de Vitória, Derrota e Loop de Reinício
 > **Objetivo:** Fechar o ciclo completo da partida com telas de desfecho e possibilidade de jogar novamente.
 
-- [ ] **Task 5.1: Verificação Contínua de Condições de Fim de Partida**
+- [x] **Task 5.1: Verificação Contínua de Condições de Fim de Partida**
   * **Descrição:** Criar listeners no ViewModel que detectam:
     * **Vitória:** Onda 3 concluída com Core > 0% e SLA > 0%.
     * **Derrota por Brecha:** `coreAiIntegrity <= 0`.
@@ -203,7 +203,7 @@ graph TD
     * A partida interrompe o loop e transiciona para `MatchPhase.victory` ou `MatchPhase.defeat`.
   * **Arquivos:** `lib/features/battle/presentation/viewmodels/battle_view_model.dart`.
 
-- [ ] **Task 5.2: Tela de Resultado Tático (Game Over / Victory)**
+- [x] **Task 5.2: Tela de Resultado Tático (Game Over / Victory)**
   * **Descrição:** Exibir um overlay moderno de fim de partida apresentando:
     * Título triunfal ("FORTALEZA DEFENDIDA - VITÓRIA!") ou alerta vermelho ("SISTEMA COMPROMETIDO - DERROTA").
     * Painel de telemetria final: Tempo total de batalha, total de pacotes neutralizados, SLA mantido, bastiões construídos e perks acumulados.
@@ -212,7 +212,7 @@ graph TD
     * Ao clicar em "JOGAR NOVAMENTE", invocar o comando de reinicialização completa.
   * **Arquivos:** `lib/features/battle/presentation/widgets/match_result_overlay.dart`.
 
-- [ ] **Task 5.3: Comando de Reinicialização de Partida (`ResetMatchCommand`)**
+- [x] **Task 5.3: Comando de Reinicialização de Partida (`ResetMatchCommand`)**
   * **Descrição:** Implementar o comando que limpa todos os nós do Flame, reseta a vida do Core para 100%, restaura o SLA para 100%, recarrega o deck inicial e coloca o jogo novamente na Fase de Preparação da Onda 1.
   * **Critérios de Aceite:**
     * O estado retorna ao estado limpo inicial sem necessidade de recarregar a página web ou reiniciar o app.

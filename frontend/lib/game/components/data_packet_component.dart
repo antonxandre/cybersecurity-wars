@@ -14,8 +14,8 @@ class DataPacketComponent extends PositionComponent {
   final Vector2 direction;
   final double damage;
   final double maxHealth;
-  final void Function(DataPacketComponent packet)? onReachedEnd;
-  final void Function(DataPacketComponent packet)? onDestroyed;
+  void Function(DataPacketComponent packet)? onReachedEnd;
+  void Function(DataPacketComponent packet)? onDestroyed;
 
   double currentHealth;
   double _flashTimer = 0.0;

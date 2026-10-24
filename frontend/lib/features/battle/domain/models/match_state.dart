@@ -27,6 +27,15 @@ class MatchState {
   final List<RoguelitePerk> activePerks;
   final List<RoguelitePerk> draftOptions;
 
+  // Modificadores dinâmicos providos pelos Perks do Archero
+  final double damageMultiplier;
+  final double bandwidthRegenRate;
+  final double damageReduction;
+
+  // Estatísticas da partida para o relatório final
+  final int statsPacketsNeutralized;
+  final int statsDurationSeconds;
+
   const MatchState({
     required this.phase,
     required this.currentWave,
@@ -42,13 +51,18 @@ class MatchState {
     required this.deck,
     required this.activePerks,
     this.draftOptions = const [],
+    this.damageMultiplier = 1.0,
+    this.bandwidthRegenRate = 0.35,
+    this.damageReduction = 0.0,
+    this.statsPacketsNeutralized = 0,
+    this.statsDurationSeconds = 0,
   });
 
   factory MatchState.initial() {
     return const MatchState(
       phase: MatchPhase.preparation,
       currentWave: 1,
-      totalWaves: 5,
+      totalWaves: 3,
       slaPercentage: 100.0,
       coreAiIntegrity: 100.0,
       cpuBudget: 150,
@@ -60,6 +74,11 @@ class MatchState {
       deck: [],
       activePerks: [],
       draftOptions: [],
+      damageMultiplier: 1.0,
+      bandwidthRegenRate: 0.35,
+      damageReduction: 0.0,
+      statsPacketsNeutralized: 0,
+      statsDurationSeconds: 0,
     );
   }
 
@@ -78,6 +97,11 @@ class MatchState {
     List<GameCard>? deck,
     List<RoguelitePerk>? activePerks,
     List<RoguelitePerk>? draftOptions,
+    double? damageMultiplier,
+    double? bandwidthRegenRate,
+    double? damageReduction,
+    int? statsPacketsNeutralized,
+    int? statsDurationSeconds,
   }) {
     return MatchState(
       phase: phase ?? this.phase,
@@ -94,6 +118,11 @@ class MatchState {
       deck: deck ?? this.deck,
       activePerks: activePerks ?? this.activePerks,
       draftOptions: draftOptions ?? this.draftOptions,
+      damageMultiplier: damageMultiplier ?? this.damageMultiplier,
+      bandwidthRegenRate: bandwidthRegenRate ?? this.bandwidthRegenRate,
+      damageReduction: damageReduction ?? this.damageReduction,
+      statsPacketsNeutralized: statsPacketsNeutralized ?? this.statsPacketsNeutralized,
+      statsDurationSeconds: statsDurationSeconds ?? this.statsDurationSeconds,
     );
   }
 }
