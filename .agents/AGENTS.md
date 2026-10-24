@@ -97,6 +97,7 @@ O repositório possui skills especializadas instaladas em `.agents/skills/`. Os 
 | Skill | Quando Utilizar |
 | :--- | :--- |
 | `infra-devsecops` | Multi-stage Dockerfiles, orquestração com docker-compose, Nginx com TLS/PQC, Fail2Ban e automação de CI/CD com GitHub Actions. |
+| `git-checkpoint` | Criação de commits semânticos e checkpoints atômicos segundo o Conventional Commits e prevenção de vazamento de segredos. |
 
 ---
 
