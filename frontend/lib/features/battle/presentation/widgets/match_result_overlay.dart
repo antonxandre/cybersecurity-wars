@@ -34,18 +34,19 @@ class MatchResultOverlay extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.zero,
-              border: Border.all(color: primaryColor, width: 2),
-              boxShadow: AppColors.neonGlow(primaryColor, blur: 24, spread: 2),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Ícone de Desfecho
+          child: SingleChildScrollView(
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.zero,
+                border: Border.all(color: primaryColor, width: 2),
+                boxShadow: AppColors.neonGlow(primaryColor, blur: 24, spread: 2),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Ícone de Desfecho
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -146,8 +147,9 @@ class MatchResultOverlay extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildStatTile({required String label, required String value, required Color color}) {
     return Container(

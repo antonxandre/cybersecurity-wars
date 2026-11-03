@@ -108,9 +108,10 @@ void main() {
     expect(find.textContaining('HABILIDADE ESPECIAL (LV. 3): Reflexão de Pacotes'), findsOneWidget);
     expect(find.text('REQUER LV. 3'), findsOneWidget);
     expect(find.textContaining('Reflete 25% do dano de colisão'), findsOneWidget);
-    expect(find.text('UPGRADE P/ NÍVEL 2'), findsOneWidget);
-
-    await tester.tap(find.text('UPGRADE P/ NÍVEL 2'));
+    final upgradeBtn = find.text('UPGRADE P/ NÍVEL 2');
+    expect(upgradeBtn, findsOneWidget);
+    await tester.ensureVisible(upgradeBtn);
+    await tester.tap(upgradeBtn);
     await tester.pump();
     expect(upgraded, true);
   });

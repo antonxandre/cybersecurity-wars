@@ -135,9 +135,9 @@ class _GameLobbyScreenState extends State<GameLobbyScreen> {
     if (_viewModel.currentMode == LobbyMode.createRoom) {
       return RoomBrowserPanel(
         rooms: _viewModel.publicRooms,
-        onJoinRoom: (room) {
-          final joined = _viewModel.joinRoom(room);
-          if (!joined && mounted) {
+        onJoinRoom: (room) async {
+          final joined = await _viewModel.joinRoom(room);
+          if (!joined && context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Esta sala está lotada! Não é possível entrar.'),
@@ -147,22 +147,22 @@ class _GameLobbyScreenState extends State<GameLobbyScreen> {
             );
           }
         },
-        onJoinByCode: (code) {
-          final success = _viewModel.joinRoomByCode(code);
-          if (!success && mounted) {
+        onJoinByCode: (code) async {
+          final success = await _viewModel.joinRoomByCode(code);
+          if (!success && context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Código inválido ou sala cheia.'),
+                content: Text('Código inválido ou sala não encontrada / lotada.'),
                 backgroundColor: AppColors.redTeam,
                 behavior: SnackBarBehavior.floating,
               ),
             );
           }
         },
-        onCreateRoom: () {
-          _viewModel.createRoom();
+        onCreateRoom: () async {
+          await _viewModel.createRoom();
         },
-        onRefresh: _viewModel.refreshPublicRooms,
+        onRefresh: () => _viewModel.refreshPublicRooms(),
       );
     }
 

@@ -52,6 +52,13 @@ class TacticalTeamChatWidgetState extends State<TacticalTeamChatWidget> {
     _focusNode.addListener(() {
       if (mounted) setState(() {});
     });
+    if (widget.initialExpanded) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _focusNode.requestFocus();
+        }
+      });
+    }
   }
 
   @override
@@ -126,10 +133,6 @@ class TacticalTeamChatWidgetState extends State<TacticalTeamChatWidget> {
     _textController.clear();
     _scrollToBottom();
     closeChat();
-  }
-
-  void _handleSendMessage() {
-    submitCurrentMessage();
   }
 
   void _handleQuickMacro(String macro) {

@@ -14,7 +14,7 @@ void main() {
       viewModel.dispose();
     });
 
-    test('Initial state loads profile, news, empty friends (no hardcoded friends), and default mode', () {
+    test('Initial state loads profile, news, empty friends, empty public rooms, and default mode', () {
       expect(viewModel.currentMode, LobbyMode.createRoom);
       expect(viewModel.aiDifficulty, AiDifficulty.operador);
       expect(viewModel.is2v2, true);
@@ -25,6 +25,7 @@ void main() {
       expect(viewModel.profile.winStreak, 5);
       expect(viewModel.profile.totalPurges, 412);
       expect(viewModel.friends.isEmpty, true); // Sem amigos fixos / hardcoded
+      expect(viewModel.publicRooms.isEmpty, true); // Sem salas mockadas ativas fixas
       expect(viewModel.news.isNotEmpty, true);
       expect(viewModel.partyMembers, ['Você (Host)']);
       expect(viewModel.matchmakingPhase, MatchmakingPhase.idle);
@@ -160,12 +161,12 @@ void main() {
       expect(launched, false);
     });
 
-    test('createRoom enters Waiting Room as Host and prepends to publicRooms', () {
+    test('createRoom enters Waiting Room as Host and prepends to publicRooms', () async {
       expect(viewModel.isInWaitingRoom, false);
       expect(viewModel.activeWaitingRoom, isNull);
 
       final initialCount = viewModel.publicRooms.length;
-      final newRoom = viewModel.createRoom(is2v2: true);
+      final newRoom = await viewModel.createRoom(is2v2: true);
 
       expect(viewModel.isInWaitingRoom, true);
       expect(viewModel.activeWaitingRoom, isNotNull);
@@ -177,7 +178,7 @@ void main() {
       expect(viewModel.publicRooms.first.code, newRoom.code);
     });
 
-    test('joinRoom respects full room rule: rejects full rooms and admits available rooms', () {
+    test('joinRoom respects full room rule: rejects full rooms and admits available rooms', () async {
       // Sala cheia (4/4)
       const fullRoom = PublicRoom(
         code: 'FUL-999',
@@ -191,7 +192,7 @@ void main() {
       expect(fullRoom.isFull, true);
       expect(fullRoom.hasSlots, false);
 
-      final joinFull = viewModel.joinRoom(fullRoom);
+      final joinFull = await viewModel.joinRoom(fullRoom);
       expect(joinFull, false);
       expect(viewModel.isInWaitingRoom, false);
 
@@ -208,15 +209,21 @@ void main() {
       expect(availableRoom.isFull, false);
       expect(availableRoom.hasSlots, true);
 
-      final joinAvailable = viewModel.joinRoom(availableRoom);
+      final joinAvailable = await viewModel.joinRoom(availableRoom);
       expect(joinAvailable, true);
       expect(viewModel.isInWaitingRoom, true);
       expect(viewModel.activeWaitingRoom!.code, 'AVA-101');
       expect(viewModel.activeWaitingRoom!.players, 2);
     });
 
-    test('leaveWaitingRoom clears active room and returns to idle lobby', () {
-      viewModel.createRoom();
+    test('joinRoomByCode rejects nonexistent code without generating fake mock rooms', () async {
+      final success = await viewModel.joinRoomByCode('NON-999');
+      expect(success, false);
+      expect(viewModel.isInWaitingRoom, false);
+    });
+
+    test('leaveWaitingRoom clears active room and returns to idle lobby', () async {
+      await viewModel.createRoom();
       expect(viewModel.isInWaitingRoom, true);
 
       viewModel.leaveWaitingRoom();
@@ -224,8 +231,8 @@ void main() {
       expect(viewModel.activeWaitingRoom, isNull);
     });
 
-    test('simulateJoinSlot fills open slots up to maxPlayers', () {
-      viewModel.createRoom(is2v2: false); // 1v1 -> max 2 players
+    test('simulateJoinSlot fills open slots up to maxPlayers', () async {
+      await viewModel.createRoom(is2v2: false); // 1v1 -> max 2 players
       expect(viewModel.activeWaitingRoom!.players, 1);
 
       final joined1 = viewModel.simulateJoinSlot();

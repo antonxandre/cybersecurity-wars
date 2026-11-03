@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -226,8 +227,8 @@ class WaitingRoomView extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
-                  // Botão de Simulação de Entrada (ideal para testar UI de espera)
-                  if (!room.isFull)
+                  // Botão de Simulação de Entrada (apenas em desenvolvimento/teste)
+                  if (!room.isFull && kDebugMode)
                     TextButton.icon(
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.tokensLumber,
@@ -317,7 +318,7 @@ class WaitingRoomView extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline_rounded, size: 16, color: AppColors.textMuted),
+                  const Icon(Icons.info_outline_rounded, size: 16, color: AppColors.textMuted),
                   const SizedBox(width: 8),
                   Text(
                     isReadyToStart

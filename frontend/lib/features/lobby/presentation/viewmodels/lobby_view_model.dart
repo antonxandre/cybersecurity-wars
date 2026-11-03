@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
+import '../../data/lobby_api_repository.dart';
 import '../../data/lobby_mock_repository.dart';
 import '../../domain/models/lobby_models.dart';
 
@@ -27,9 +28,10 @@ class LobbyViewModel extends ChangeNotifier {
   int _matchmakingElapsedSeconds = 0;
   Timer? _matchmakingTicker;
   Timer? _matchmakingTransitionTimer;
+  bool _isDisposed = false;
 
   LobbyViewModel({LobbyRepository? repository})
-      : _repository = repository ?? const LobbyMockRepository() {
+      : _repository = repository ?? LobbyApiRepository() {
     _loadInitialData();
     _regenerateRoomCodeInternal();
   }
@@ -58,6 +60,25 @@ class LobbyViewModel extends ChangeNotifier {
     _friends = _repository.getFriends();
     _news = _repository.getNews();
     _publicRooms = List<PublicRoom>.from(_repository.getPublicRooms());
+
+    final repo = _repository;
+    if (repo is LobbyApiRepository) {
+      repo.fetchProfile().then((p) {
+        if (_isDisposed) return;
+        _profile = p;
+        notifyListeners();
+      });
+      repo.fetchNews().then((n) {
+        if (_isDisposed) return;
+        _news = n;
+        notifyListeners();
+      });
+      repo.fetchPublicRooms().then((r) {
+        if (_isDisposed) return;
+        _publicRooms = List<PublicRoom>.from(r);
+        notifyListeners();
+      });
+    }
   }
 
   void setMode(LobbyMode mode) {
@@ -207,7 +228,8 @@ class LobbyViewModel extends ChangeNotifier {
   }
 
   /// Cria uma nova sala dedicada e ingressa o usuário imediatamente na Waiting Room como Host.
-  PublicRoom createRoom({bool? is2v2, String? customCode}) {
+  /// Integra com o endpoint POST /api/matches via repositório.
+  Future<PublicRoom> createRoom({bool? is2v2, String? customCode, String? scenarioId}) async {
     final use2v2 = is2v2 ?? _is2v2;
     final maxSlots = use2v2 ? 4 : 2;
     final code = customCode?.trim().isNotEmpty == true ? customCode!.trim() : _generatedRoomCode;
@@ -215,18 +237,37 @@ class LobbyViewModel extends ChangeNotifier {
         ? _partyMembers.first.replaceAll(' (Host)', '')
         : 'Você';
 
-    final newRoom = PublicRoom(
-      code: code,
-      host: hostName,
-      mode: use2v2 ? '2v2 Duplas' : '1v1 Duelo',
-      players: 1,
-      maxPlayers: maxSlots,
-      ping: 15,
-      playerNames: [hostName],
-    );
+    PublicRoom? createdRoom;
+    try {
+      createdRoom = await _repository.createRoom(
+        scenarioId: scenarioId ?? 'scenario-a',
+        customCode: code,
+        is2v2: use2v2,
+        mode: use2v2 ? '2v2 Duplas' : '1v1 Duelo',
+      );
+    } catch (e) {
+      debugPrint('[LobbyViewModel] Erro ao integrar criação de sala: $e');
+    }
 
-    // Adiciona ao topo das salas ativas
-    _publicRooms.insert(0, newRoom);
+    final newRoom = createdRoom ??
+        PublicRoom(
+          code: code,
+          host: hostName,
+          mode: use2v2 ? '2v2 Duplas' : '1v1 Duelo',
+          players: 1,
+          maxPlayers: maxSlots,
+          ping: 15,
+          playerNames: [hostName],
+        );
+
+    // Adiciona ou substitui na lista de salas ativas
+    final idx = _publicRooms.indexWhere((r) => r.code == newRoom.code);
+    if (idx != -1) {
+      _publicRooms[idx] = newRoom;
+    } else {
+      _publicRooms.insert(0, newRoom);
+    }
+
     _activeWaitingRoom = newRoom;
     _regenerateRoomCodeInternal();
     notifyListeners();
@@ -235,7 +276,7 @@ class LobbyViewModel extends ChangeNotifier {
 
   /// Conecta o usuário a uma sala pública existente (se houver vagas disponíveis).
   /// Regra: Se a sala estiver cheia (players >= maxPlayers), recusa a conexão (retorna false).
-  bool joinRoom(PublicRoom room) {
+  Future<bool> joinRoom(PublicRoom room) async {
     if (room.isFull) {
       return false;
     }
@@ -243,6 +284,12 @@ class LobbyViewModel extends ChangeNotifier {
     final userName = _partyMembers.isNotEmpty
         ? _partyMembers.first.replaceAll(' (Host)', '')
         : 'Operador_Convidado';
+
+    try {
+      await _repository.joinRoom(room.code);
+    } catch (e) {
+      debugPrint('[LobbyViewModel] Erro ao sincronizar join com backend: $e');
+    }
 
     final updatedPlayerNames = List<String>.from(room.playerNames);
     if (!updatedPlayerNames.contains(userName)) {
@@ -266,28 +313,24 @@ class LobbyViewModel extends ChangeNotifier {
   }
 
   /// Conecta a uma sala através de código alfanumérico digitado.
-  bool joinRoomByCode(String code) {
+  Future<bool> joinRoomByCode(String code) async {
     final clean = sanitizeAndValidateRoomCode(code);
     if (clean == null) return false;
 
     final found = _publicRooms.where((r) => r.code.toUpperCase() == clean.toUpperCase()).firstOrNull;
     if (found != null) {
-      return joinRoom(found);
+      return await joinRoom(found);
     }
 
-    // Se o código for válido mas a sala não existir no mock local, cria ou conecta com slots
-    final is2v2Mode = _is2v2;
-    final virtualRoom = PublicRoom(
-      code: clean,
-      host: 'Operador_Remoto',
-      mode: is2v2Mode ? '2v2 Duplas' : '1v1 Duelo',
-      players: 1,
-      maxPlayers: is2v2Mode ? 4 : 2,
-      ping: 28,
-      playerNames: ['Operador_Remoto'],
-    );
-    _publicRooms.insert(0, virtualRoom);
-    return joinRoom(virtualRoom);
+    // Se o código não estiver em cache, atualiza da API para validar se existe
+    await refreshPublicRooms();
+    final foundAfterRefresh = _publicRooms.where((r) => r.code.toUpperCase() == clean.toUpperCase()).firstOrNull;
+    if (foundAfterRefresh != null) {
+      return await joinRoom(foundAfterRefresh);
+    }
+
+    // Sem criação de mock: rejeita caso a sala realmente não exista
+    return false;
   }
 
   /// Sai da Waiting Room atual e retorna ao navegador de salas do Lobby.
@@ -320,8 +363,21 @@ class LobbyViewModel extends ChangeNotifier {
     return true;
   }
 
-  /// Atualiza a lista de salas e simula atualização de pings em tempo real.
-  void refreshPublicRooms() {
+  /// Atualiza a lista de salas consultando a API ou recalculando pings.
+  Future<void> refreshPublicRooms() async {
+    final repo = _repository;
+    if (repo is LobbyApiRepository) {
+      try {
+        final rooms = await repo.fetchPublicRooms();
+        if (_isDisposed) return;
+        _publicRooms = List<PublicRoom>.from(rooms);
+        notifyListeners();
+      } catch (e) {
+        debugPrint('[LobbyViewModel] Erro ao atualizar salas da API: $e');
+      }
+      return;
+    }
+
     final rand = Random();
     _publicRooms = _publicRooms.map((r) {
       final variation = rand.nextInt(7) - 3;
@@ -340,6 +396,7 @@ class LobbyViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _cancelTimers();
     super.dispose();
   }

@@ -16,9 +16,9 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController(text: 'operador@promptsec.arena');
-  final _passwordController = TextEditingController(text: 'CyberSec@2026');
-  final _usernameController = TextEditingController(text: 'Operador Ghost');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _usernameController = TextEditingController();
 
   bool _isRegisterMode = false;
   bool _isLoading = false;
@@ -268,6 +268,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     _buildTextField(
                       controller: _usernameController,
                       label: 'NOME DO OPERADOR',
+                      hintText: 'ex: Operador Ghost',
                       icon: Icons.person_outline_rounded,
                       activeColor: activeColor,
                     ),
@@ -276,6 +277,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   _buildTextField(
                     controller: _emailController,
                     label: 'EMAIL CORPORATIVO',
+                    hintText: 'operador@promptsec.arena',
                     icon: Icons.email_outlined,
                     activeColor: activeColor,
                   ),
@@ -283,6 +285,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   _buildTextField(
                     controller: _passwordController,
                     label: 'CHAVE DE ACESSO / SENHA',
+                    hintText: 'Mínimo de 8 caracteres',
                     icon: Icons.lock_outline_rounded,
                     activeColor: activeColor,
                     obscure: _obscurePassword,
@@ -351,44 +354,46 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 20),
-                  const Divider(color: AppColors.border),
-                  const SizedBox(height: 14),
+                  if (kDebugMode) ...[
+                    const SizedBox(height: 20),
+                    const Divider(color: AppColors.border),
+                    const SizedBox(height: 14),
 
-                  // Acessos Rápidos de Demonstração (1-Clique)
-                  Text('ACESSO RÁPIDO DE DESENVOLVEDOR:', style: AppTypography.codeSmall.copyWith(fontSize: 10)),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: AppColors.blueTeam, width: 1),
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                          ),
-                          onPressed: () => _quickDemoLogin(UserRole.blueTeam),
-                          child: Text(
-                            'DEMO BLUE 🛡️',
-                            style: AppTypography.codeSmall.copyWith(color: AppColors.blueTeam),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: AppColors.redTeam, width: 1),
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                          ),
-                          onPressed: () => _quickDemoLogin(UserRole.redTeam),
-                          child: Text(
-                            'DEMO RED ⚔️',
-                            style: AppTypography.codeSmall.copyWith(color: AppColors.redTeam),
+                    // Acessos Rápidos de Demonstração (Apenas em Debug/Desenvolvimento)
+                    Text('ACESSO RÁPIDO DE DESENVOLVEDOR:', style: AppTypography.codeSmall.copyWith(fontSize: 10)),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: AppColors.blueTeam, width: 1),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                            ),
+                            onPressed: () => _quickDemoLogin(UserRole.blueTeam),
+                            child: Text(
+                              'DEMO BLUE 🛡️',
+                              style: AppTypography.codeSmall.copyWith(color: AppColors.blueTeam),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: AppColors.redTeam, width: 1),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                            ),
+                            onPressed: () => _quickDemoLogin(UserRole.redTeam),
+                            child: Text(
+                              'DEMO RED ⚔️',
+                              style: AppTypography.codeSmall.copyWith(color: AppColors.redTeam),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -405,6 +410,7 @@ class _LoginScreenState extends State<LoginScreen> {
     required String label,
     required IconData icon,
     required Color activeColor,
+    String? hintText,
     bool obscure = false,
     Widget? suffixIcon,
   }) {
@@ -418,6 +424,8 @@ class _LoginScreenState extends State<LoginScreen> {
           obscureText: obscure,
           style: AppTypography.codeMedium,
           decoration: InputDecoration(
+            hintText: hintText,
+            hintStyle: AppTypography.codeMedium.copyWith(color: AppColors.textMuted.withValues(alpha: 0.6)),
             prefixIcon: Icon(icon, color: activeColor, size: 18),
             suffixIcon: suffixIcon,
             filled: true,

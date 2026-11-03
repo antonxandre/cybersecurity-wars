@@ -177,6 +177,28 @@ class PlayerProfile {
 
   double get xpProgress => xpToNext > 0 ? (currentXp / xpToNext).clamp(0.0, 1.0) : 0.0;
   double get winRate => matches > 0 ? (wins / matches) * 100 : 0.0;
+
+  factory PlayerProfile.fromJson(Map<String, dynamic> json) {
+    final matchesCount = (json['matches'] as num?)?.toInt() ?? 0;
+    final winsCount = (json['wins'] as num?)?.toInt() ?? 0;
+    final lossesCount = (json['losses'] as num?)?.toInt();
+
+    return PlayerProfile(
+      level: (json['level'] as num?)?.toInt() ?? 1,
+      currentXp: (json['currentXp'] as num?)?.toInt() ?? (json['xp'] as num?)?.toInt() ?? 0,
+      xpToNext: (json['xpToNext'] as num?)?.toInt() ?? 1000,
+      wins: winsCount,
+      losses: lossesCount,
+      matches: matchesCount,
+      winStreak: (json['winStreak'] as num?)?.toInt() ?? 0,
+      totalPurges: (json['totalPurges'] as num?)?.toInt() ??
+          (json['attacksNeutralized'] as num?)?.toInt() ??
+          (json['score'] as num?)?.toInt() ??
+          0,
+      bits: (json['bits'] as num?)?.toInt() ?? 0,
+      tokens: (json['tokens'] as num?)?.toInt() ?? 0,
+    );
+  }
 }
 
 /// Amigo no painel social / party.
@@ -240,6 +262,52 @@ class PublicRoom {
   bool get isFull => players >= maxPlayers;
   bool get hasSlots => players < maxPlayers;
   int get availableSlots => (maxPlayers - players).clamp(0, maxPlayers);
+
+  factory PublicRoom.fromJson(Map<String, dynamic> json) {
+    final code = json['code']?.toString() ?? json['id']?.toString() ?? '';
+    final blueUsername = json['bluePlayer'] is Map ? json['bluePlayer']['username']?.toString() : null;
+    final redUsername = json['redPlayer'] is Map ? json['redPlayer']['username']?.toString() : null;
+    final castersList = json['casters'] is List
+        ? (json['casters'] as List)
+            .map((c) => c is Map ? c['username']?.toString() : null)
+            .whereType<String>()
+            .toList()
+        : <String>[];
+
+    final playerNames = (json['playerNames'] as List?)?.map((e) => e.toString()).toList() ??
+        [
+          if (blueUsername != null) blueUsername,
+          if (redUsername != null) redUsername,
+          ...castersList,
+        ];
+
+    final host = json['host']?.toString() ??
+        json['hostUsername']?.toString() ??
+        blueUsername ??
+        redUsername ??
+        (castersList.isNotEmpty ? castersList.first : 'Host');
+
+    final mode = json['mode']?.toString() ??
+        json['scenarioTitle']?.toString() ??
+        '2v2 Duplas';
+
+    final maxPlayers = (json['maxPlayers'] as num?)?.toInt() ??
+        (mode.contains('2v2') ? 4 : 2);
+
+    final players = (json['players'] as num?)?.toInt() ??
+        (json['playersCount'] as num?)?.toInt() ??
+        playerNames.length;
+
+    return PublicRoom(
+      code: code,
+      host: host,
+      mode: mode,
+      players: players > 0 ? players : 1,
+      maxPlayers: maxPlayers,
+      ping: (json['ping'] as num?)?.toInt() ?? 20,
+      playerNames: playerNames.isNotEmpty ? playerNames : [host],
+    );
+  }
 
   Color get pingColor {
     if (ping < 50) return AppColors.bandwidth;

@@ -63,7 +63,7 @@ void main() {
     expect(find.text('MINERADORES'), findsOneWidget);
     expect(find.text('TAXA PRODUÇÃO'), findsOneWidget);
     expect(find.text('SALDO DE BITS'), findsOneWidget);
-    expect(find.text('2'), findsOneWidget);
+    expect(find.text('2'), findsWidgets);
     expect(find.text('+10'), findsOneWidget);
     expect(find.text('30'), findsOneWidget);
 

@@ -11,6 +11,7 @@ import { MatchesService } from './matches.service.js';
 import { CreateMatchDto } from './dto/create-match.dto.js';
 import { SubmitPromptDto, SubmitPatchDto, UpdatePortRuleDto } from './dto/match-action.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { Public } from '../common/decorators/public.decorator.js';
 
 @Controller('matches')
 @UseGuards(JwtAuthGuard)
@@ -24,10 +25,15 @@ export class MatchesController {
       username: req.user.username,
       role: dto.joinAsTeam ?? req.user.role,
     };
-    return this.matchesService.createMatch(dto.scenarioId, user);
+    return this.matchesService.createMatch(dto.scenarioId, user, {
+      customCode: dto.customCode,
+      is2v2: dto.is2v2,
+      mode: dto.mode,
+    });
   }
 
   @Get()
+  @Public()
   async list() {
     return this.matchesService.getAllMatches();
   }

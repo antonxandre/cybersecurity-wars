@@ -14,7 +14,13 @@ void main() {
     );
 
     expect(find.byType(CyberMinerIcon), findsOneWidget);
-    expect(find.byType(CustomPaint), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(CyberMinerIcon),
+        matching: find.byType(CustomPaint),
+      ),
+      findsOneWidget,
+    );
 
     final sizedBox = tester.widget<SizedBox>(
       find.descendant(of: find.byType(CyberMinerIcon), matching: find.byType(SizedBox)),

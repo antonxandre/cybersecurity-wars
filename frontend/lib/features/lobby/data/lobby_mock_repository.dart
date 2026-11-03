@@ -8,14 +8,23 @@ abstract class LobbyRepository {
   List<LobbyFriend> getFriends();
   List<LobbyNewsItem> getNews();
   List<PublicRoom> getPublicRooms();
+  Future<PublicRoom?> createRoom({
+    String? scenarioId,
+    String? customCode,
+    bool is2v2 = true,
+    String? mode,
+  });
+  Future<bool> joinRoom(String roomId, {String? team});
 }
 
-/// Implementação mockada local para o client de jogo (pronta para substituição por NestJS API).
+/// Implementação do repositório para testes unitários e fallback local controlado.
 class LobbyMockRepository implements LobbyRepository {
   final List<LobbyFriend> initialFriends;
+  final List<PublicRoom> initialRooms;
 
   const LobbyMockRepository({
     this.initialFriends = const [],
+    this.initialRooms = const [],
   });
 
   @override
@@ -72,61 +81,30 @@ class LobbyMockRepository implements LobbyRepository {
 
   @override
   List<PublicRoom> getPublicRooms() {
-    return const [
-      PublicRoom(
-        code: 'CYB-709',
-        host: 'ZeroDay_Hunter',
-        mode: '2v2 Duplas',
-        players: 3,
-        maxPlayers: 4,
-        ping: 18,
-        playerNames: ['ZeroDay_Hunter', 'BitShifter', 'NullPointer'],
-      ),
-      PublicRoom(
-        code: 'NET-404',
-        host: 'SynFlood_Master',
-        mode: '1v1 Duelo',
-        players: 1,
-        maxPlayers: 2,
-        ping: 24,
-        playerNames: ['SynFlood_Master'],
-      ),
-      PublicRoom(
-        code: 'SEC-888',
-        host: 'KernelPanic',
-        mode: '2v2 Duplas',
-        players: 4,
-        maxPlayers: 4,
-        ping: 32,
-        playerNames: ['KernelPanic', 'ShadowByte', 'FirewallGod', 'RootAccess'],
-      ),
-      PublicRoom(
-        code: 'PRO-101',
-        host: 'ByteDefender',
-        mode: '1v1 Duelo',
-        players: 2,
-        maxPlayers: 2,
-        ping: 15,
-        playerNames: ['ByteDefender', 'CiscoNinja'],
-      ),
-      PublicRoom(
-        code: 'APT-029',
-        host: 'CipherGhost',
-        mode: '2v2 Duplas',
-        players: 1,
-        maxPlayers: 4,
-        ping: 48,
-        playerNames: ['CipherGhost'],
-      ),
-      PublicRoom(
-        code: 'EXP-999',
-        host: 'Overclocked',
-        mode: '1v1 Duelo',
-        players: 1,
-        maxPlayers: 2,
-        ping: 112,
-        playerNames: ['Overclocked'],
-      ),
-    ];
+    return List<PublicRoom>.from(initialRooms);
+  }
+
+  @override
+  Future<PublicRoom?> createRoom({
+    String? scenarioId,
+    String? customCode,
+    bool is2v2 = true,
+    String? mode,
+  }) async {
+    final code = customCode?.trim().isNotEmpty == true ? customCode!.trim() : 'ROOM-01';
+    return PublicRoom(
+      code: code,
+      host: 'Você',
+      mode: mode ?? (is2v2 ? '2v2 Duplas' : '1v1 Duelo'),
+      players: 1,
+      maxPlayers: is2v2 ? 4 : 2,
+      ping: 15,
+      playerNames: const ['Você'],
+    );
+  }
+
+  @override
+  Future<bool> joinRoom(String roomId, {String? team}) async {
+    return true;
   }
 }

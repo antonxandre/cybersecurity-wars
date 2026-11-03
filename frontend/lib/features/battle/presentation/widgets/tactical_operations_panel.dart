@@ -531,16 +531,20 @@ class TacticalOperationsPanel extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'CUSTO PRÓXIMO MINERADOR:',
-                    style: AppTypography.codeSmall.copyWith(
-                      fontSize: 11,
-                      color: AppColors.textMuted,
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Text(
+                      'CUSTO PRÓXIMO:',
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.codeSmall.copyWith(
+                        fontSize: 11,
+                        color: AppColors.textMuted,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
-                    '🪙 $cost Tokens ${canAfford ? "(Pronto)" : "(${economy.tokens}/$cost)"}',
+                    '$cost Tokens ${canAfford ? "(Pronto)" : "(${economy.tokens}/$cost)"}',
                     style: AppTypography.codeSmall.copyWith(
                       fontSize: 11,
                       color: canAfford ? AppColors.bandwidth : AppColors.textSecondary,
@@ -619,14 +623,18 @@ class TacticalOperationsPanel extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'STATUS DE INTEGRIDADE DO SERVIDOR:',
-                    style: AppTypography.codeSmall.copyWith(
-                      fontSize: 11,
-                      color: AppColors.textMuted,
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Text(
+                      'STATUS DO SERVIDOR:',
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.codeSmall.copyWith(
+                        fontSize: 11,
+                        color: AppColors.textMuted,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
                     '${mainframe.hpPercentage.toInt()}% OPERACIONAL',
                     style: AppTypography.codeSmall.copyWith(
@@ -716,32 +724,35 @@ class TacticalOperationsPanel extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CyberMinerIcon(
-                size: 20,
+                size: 18,
                 color: canAfford ? Colors.black : AppColors.textSecondary,
               ),
-              const SizedBox(width: 8),
-              Text(
-                'RECRUTAR MINERADOR',
-                style: AppTypography.titleMedium.copyWith(
-                  color: canAfford ? Colors.black : AppColors.textSecondary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13.5,
-                  letterSpacing: 0.6,
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  'RECRUTAR MINERADOR',
+                  style: AppTypography.titleMedium.copyWith(
+                    color: canAfford ? Colors.black : AppColors.textSecondary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12.5,
+                    letterSpacing: 0.5,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: canAfford ? Colors.black.withValues(alpha: 0.2) : AppColors.border,
                   borderRadius: BorderRadius.zero,
                 ),
                 child: Text(
-                  '🪙 $cost Tokens',
+                  '$cost Tokens',
                   style: AppTypography.codeSmall.copyWith(
                     color: canAfford ? Colors.black : AppColors.textSecondary,
                     fontWeight: FontWeight.bold,
-                    fontSize: 12,
+                    fontSize: 11,
                   ),
                 ),
               ),
@@ -992,41 +1003,45 @@ class TacticalOperationsPanel extends StatelessWidget {
 
   Widget _buildFooter() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       color: AppColors.cardSurface.withValues(alpha: 0.7),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.toll_rounded, size: 15, color: AppColors.cpuClock),
-              const SizedBox(width: 4),
-              Text(
-                '🪙 ${economy.tokens} Tokens',
-                style: AppTypography.codeSmall.copyWith(
-                  color: AppColors.textPrimary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+          Flexible(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.toll_rounded, size: 14, color: AppColors.cpuClock),
+                const SizedBox(width: 3),
+                Text(
+                  '${economy.tokens} Tokens',
+                  style: AppTypography.codeSmall.copyWith(
+                    color: AppColors.textPrimary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              const Icon(Icons.bolt_rounded, size: 15, color: AppColors.blueTeam),
-              const SizedBox(width: 3),
-              Text(
-                '${economy.bits} Bits',
-                style: AppTypography.codeSmall.copyWith(
-                  color: AppColors.blueTeam,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+                const SizedBox(width: 8),
+                const Icon(Icons.bolt_rounded, size: 14, color: AppColors.blueTeam),
+                const SizedBox(width: 3),
+                Text(
+                  '${economy.bits} Bits',
+                  style: AppTypography.codeSmall.copyWith(
+                    color: AppColors.blueTeam,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
+          const SizedBox(width: 6),
           Text(
-            'Pressione [ESC] p/ fechar',
+            '[ESC] Fechar',
             style: AppTypography.codeSmall.copyWith(
               color: AppColors.textMuted,
-              fontSize: 10.5,
+              fontSize: 10,
             ),
           ),
         ],

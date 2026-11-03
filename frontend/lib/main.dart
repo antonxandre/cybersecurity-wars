@@ -6,6 +6,7 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/fullscreen_helper.dart';
+import 'features/auth/domain/services/auth_service.dart';
 import 'features/settings/domain/services/settings_service.dart';
 
 void main() async {
@@ -14,6 +15,9 @@ void main() async {
 
   // Carregar e sincronizar configurações do sistema
   SettingsService.instance.initialize();
+
+  // Restaurar sessão de autenticação salva (OWASP A01 & A07)
+  await AuthService.instance.initializeSession();
 
   // Forçar orientação Paisagem (Landscape) em Mobile/Tablet/Desktop
   await SystemChrome.setPreferredOrientations([

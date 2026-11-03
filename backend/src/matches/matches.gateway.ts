@@ -15,7 +15,14 @@ import { UserRole } from '../common/decorators/roles.decorator.js';
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: (origin: string, callback: (err: Error | null, allow?: boolean) => void) => {
+      const configured = (process.env.CORS_ORIGIN || '*').split(',').map((s) => s.trim());
+      if (configured.includes('*') || !origin || configured.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
     credentials: true,
   },
   namespace: '/arena',
@@ -139,5 +146,65 @@ export class MatchesGateway implements OnGatewayConnection, OnGatewayDisconnect 
     this.server.to(roomName).emit('match:state_changed', result.match);
     this.server.to(roomName).emit('match:event', result.event);
     return result;
+  }
+
+  @SubscribeMessage('virus:send')
+  async handleVirusSend(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { matchId: string; virus: Record<string, unknown> },
+  ) {
+    const user = client.data.user;
+    const roomName = `match:${data.matchId}`;
+    client.to(roomName).emit('opponent:viruses_queued', [data.virus]);
+    this.logger.log(`Tactical virus sent by ${user?.username ?? 'operator'} in room ${roomName}`);
+    return { success: true };
+  }
+
+  @SubscribeMessage('chat:send')
+  async handleChatSend(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { matchId: string; channel?: string; text: string; senderName?: string; senderTeam?: string },
+  ) {
+    const user = client.data.user;
+    const roomName = `match:${data.matchId}`;
+    const message = {
+      id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      channel: data.channel ?? 'team',
+      senderName: data.senderName ?? user?.username ?? 'Operador',
+      senderTeam: data.senderTeam ?? (user?.role === UserRole.BLUE_TEAM ? 'blue' : 'red'),
+      text: data.text,
+      timestamp: new Date().toISOString(),
+    };
+    this.server.to(roomName).emit('chat:message', message);
+    return { success: true, message };
+  }
+
+  @SubscribeMessage('tactical:action')
+  async handleTacticalAction(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { matchId: string; type: string; payload: Record<string, unknown> },
+  ) {
+    const user = client.data.user;
+    const roomName = `match:${data.matchId}`;
+    this.server.to(roomName).emit('tactical:action_applied', {
+      user: user?.username ?? 'operator',
+      type: data.type,
+      payload: data.payload,
+      timestamp: Date.now(),
+    });
+    return { success: true };
+  }
+
+  @SubscribeMessage('match:leave')
+  async handleMatchLeave(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { matchId: string },
+  ) {
+    const roomName = `match:${data.matchId}`;
+    await client.leave(roomName);
+    this.server.to(roomName).emit('match:player_left', {
+      user: client.data.user?.username,
+    });
+    return { success: true };
   }
 }

@@ -33,6 +33,9 @@ class TacticalUnitInfoHud extends StatelessWidget {
 
     final content = Container(
       width: hudWidth,
+      constraints: BoxConstraints(
+        maxHeight: (MediaQuery.of(context).size.height - 40).clamp(300.0, 700.0),
+      ),
       decoration: BoxDecoration(
         color: AppColors.surface.withValues(alpha: 0.96),
         borderRadius: BorderRadius.zero,
@@ -57,9 +60,10 @@ class TacticalUnitInfoHud extends StatelessWidget {
 
             const Divider(color: AppColors.border, height: 1),
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Column(
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -101,10 +105,11 @@ class TacticalUnitInfoHud extends StatelessWidget {
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
+    ),
+  );
 
     // Seta holográfica apontando para a unidade no canvas
     final arrowWidget = SizedBox(
