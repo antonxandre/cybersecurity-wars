@@ -34,6 +34,27 @@
   </style>
 </head>
 <body>
+  <script>
+    // Inicialização da tela cheia por padrão no primeiro gesto do usuário
+    (function() {
+      function requestFullscreenOnFirstGesture() {
+        var pref = localStorage.getItem('cyberwars_fullscreen');
+        if (pref !== 'false') {
+          var el = document.documentElement;
+          var requestMethod = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+          if (requestMethod && !document.fullscreenElement) {
+            try {
+              var p = requestMethod.call(el);
+              if (p && p.catch) p.catch(function() {});
+            } catch (e) {}
+          }
+        }
+      }
+      window.addEventListener('click', requestFullscreenOnFirstGesture, { once: true });
+      window.addEventListener('pointerdown', requestFullscreenOnFirstGesture, { once: true });
+      window.addEventListener('keydown', requestFullscreenOnFirstGesture, { once: true });
+    })();
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

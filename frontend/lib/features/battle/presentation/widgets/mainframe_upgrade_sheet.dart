@@ -24,10 +24,10 @@ class MainframeUpgradeSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: const Border(top: BorderSide(color: AppColors.borderGlow, width: 2.0)),
+        borderRadius: BorderRadius.zero,
+        border: Border(top: BorderSide(color: AppColors.borderGlow, width: 2.0)),
       ),
       child: SafeArea(
         child: Column(
@@ -41,7 +41,7 @@ class MainframeUpgradeSheet extends StatelessWidget {
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: AppColors.cardSurface,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.zero,
                     border: Border.all(color: mainframe.teamColor),
                   ),
                   child: Icon(Icons.memory_rounded, color: mainframe.teamColor, size: 24),
@@ -62,7 +62,7 @@ class MainframeUpgradeSheet extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: AppColors.coreAi.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.zero,
                     border: Border.all(color: AppColors.coreAi),
                   ),
                   child: Row(
@@ -89,7 +89,7 @@ class MainframeUpgradeSheet extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: AppColors.cardSurface,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.zero,
                 border: Border.all(color: AppColors.border),
               ),
               child: Row(
@@ -166,11 +166,11 @@ class MainframeUpgradeSheet extends StatelessWidget {
   Widget _buildStatIndicator({required String label, required String value, required Color color}) {
     return Column(
       children: [
-        Text(label, style: AppTypography.codeSmall.copyWith(fontSize: 9, color: AppColors.textMuted)),
+        Text(label, style: AppTypography.codeSmall.copyWith(fontSize: 11.5, color: AppColors.textMuted)),
         const SizedBox(height: 2),
         Text(
           value,
-          style: AppTypography.codeSmall.copyWith(color: color, fontWeight: FontWeight.bold, fontSize: 11),
+          style: AppTypography.codeSmall.copyWith(color: color, fontWeight: FontWeight.bold, fontSize: 13.0),
         ),
       ],
     );
@@ -189,7 +189,7 @@ class MainframeUpgradeSheet extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.cardSurface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.zero,
         border: Border.all(
           color: canUpgrade ? AppColors.coreAi.withValues(alpha: 0.5) : AppColors.border,
         ),
@@ -199,12 +199,12 @@ class MainframeUpgradeSheet extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, color: canUpgrade ? AppColors.coreAi : AppColors.textMuted, size: 16),
+              Icon(icon, color: canUpgrade ? AppColors.coreAi : AppColors.textMuted, size: 18),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   title,
-                  style: AppTypography.codeSmall.copyWith(fontSize: 10, fontWeight: FontWeight.bold),
+                  style: AppTypography.codeSmall.copyWith(fontSize: 12.0, fontWeight: FontWeight.bold),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -213,17 +213,17 @@ class MainframeUpgradeSheet extends StatelessWidget {
           const SizedBox(height: 6),
           Text('NÍVEL $level', style: AppTypography.codeMedium.copyWith(color: AppColors.cpuClock)),
           const SizedBox(height: 2),
-          Text(benefit, style: AppTypography.codeSmall.copyWith(fontSize: 9, color: AppColors.textSecondary)),
+          Text(benefit, style: AppTypography.codeSmall.copyWith(fontSize: 11.0, color: AppColors.textSecondary)),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
-            height: 34,
+            height: 36,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: canUpgrade ? AppColors.coreAi : AppColors.cardSurface,
                 foregroundColor: AppColors.background,
                 padding: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
               ),
               onPressed: canUpgrade ? onTap : null,
               child: Text(
@@ -231,7 +231,7 @@ class MainframeUpgradeSheet extends StatelessWidget {
                 style: AppTypography.codeSmall.copyWith(
                   fontWeight: FontWeight.bold,
                   color: canUpgrade ? AppColors.background : AppColors.textMuted,
-                  fontSize: 10,
+                  fontSize: 11.5,
                 ),
               ),
             ),

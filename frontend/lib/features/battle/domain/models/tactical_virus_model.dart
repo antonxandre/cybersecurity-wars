@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 
 /// Modelo de Vírus/Malware Tático enviado contra a equipe adversária (Mercenários no Legion TD).
-/// Comprar um vírus gasta Tokens e concede um aumento permanente de Renda de Bits por rodada.
+/// Comprar um vírus gasta Bits (moeda minerada) e concede aumento permanente de Renda de Tokens por rodada.
 class TacticalVirusModel {
   final String id;
   final String name;
   final String description;
-  final int tokenCost;
-  final int incomeBonus;
+  final int bitCost;
+  final int incomeBonusTokens;
   final double packetHp;
   final double packetSpeed;
-  final double packetDamage;
+  final double attackDamageBits;
   final int unitCount;
   final IconData icon;
   final Color color;
@@ -20,69 +20,72 @@ class TacticalVirusModel {
     required this.id,
     required this.name,
     required this.description,
-    required this.tokenCost,
-    required this.incomeBonus,
+    required this.bitCost,
+    required this.incomeBonusTokens,
     required this.packetHp,
     required this.packetSpeed,
-    required this.packetDamage,
+    required this.attackDamageBits,
     this.unitCount = 1,
     required this.icon,
-    required this.color,
+    this.color = AppColors.redTeam,
   });
 
-  /// Catálogo padrão de malwares táticos disponíveis para compra ofensiva
+  int get incomeBonus => incomeBonusTokens;
+  int get tokenCost => bitCost;
+
+  /// Catálogo padrão de malwares táticos limpos e autênticos de cibersegurança
   static List<TacticalVirusModel> get catalog => const [
         TacticalVirusModel(
           id: 'virus_port_scanner',
           name: 'Port Scanner',
-          description: 'Sonda leve e ultra-rápida. Causa pouco dano mas testa a velocidade dos firewalls.',
-          tokenCost: 20,
-          incomeBonus: 3,
+          description: 'Sonda rápida de reconhecimento que mapeia portas e brechas.',
+          bitCost: 20,
+          incomeBonusTokens: 3,
           packetHp: 40.0,
           packetSpeed: 95.0,
-          packetDamage: 15.0,
+          attackDamageBits: 18.0,
           unitCount: 1,
           icon: Icons.radar_rounded,
-          color: AppColors.blueTeam,
+          color: AppColors.bastionProxy,
         ),
         TacticalVirusModel(
           id: 'virus_syn_flood',
           name: 'SYN Flood',
-          description: 'Enxame de 3 pacotes simultâneos projetados para sobrecarregar nós de alvo único.',
-          tokenCost: 40,
-          incomeBonus: 6,
+          description: 'Enxame de 3 pacotes rápidos para sobrecarregar as rotas de tráfego.',
+          bitCost: 40,
+          incomeBonusTokens: 6,
           packetHp: 35.0,
-          packetSpeed: 65.0,
-          packetDamage: 25.0,
+          packetSpeed: 75.0,
+          attackDamageBits: 28.0,
           unitCount: 3,
-          icon: Icons.grain_rounded,
-          color: AppColors.cpuClock,
+          icon: Icons.waves_rounded,
+          color: AppColors.bastionFirewall,
         ),
         TacticalVirusModel(
-          id: 'virus_trojan',
-          name: 'Trojan Payload',
-          description: 'Malware camuflado de alta integridade. Exige fogo concentrado para ser purgado.',
-          tokenCost: 75,
-          incomeBonus: 12,
+          id: 'virus_slowloris',
+          name: 'Slowloris',
+          description: 'Ataque persistente com conexões lentas que consome largura de banda.',
+          bitCost: 75,
+          incomeBonusTokens: 12,
           packetHp: 160.0,
           packetSpeed: 45.0,
-          packetDamage: 60.0,
+          attackDamageBits: 45.0,
           unitCount: 1,
-          icon: Icons.bug_report_rounded,
-          color: AppColors.coreAi,
+          icon: Icons.hourglass_bottom_rounded,
+          color: AppColors.bastionIds,
         ),
         TacticalVirusModel(
           id: 'virus_ransomware',
-          name: 'Ransomware Boss',
-          description: 'Ameaça devastadora de criptografia. Causa dano massivo se alcançar o Mainframe.',
-          tokenCost: 140,
-          incomeBonus: 24,
-          packetHp: 420.0,
-          packetSpeed: 30.0,
-          packetDamage: 180.0,
+          name: 'Ransomware',
+          description: 'Carga pesada blindada de impacto massivo e dano crítico ao Mainframe.',
+          bitCost: 110,
+          incomeBonusTokens: 18,
+          packetHp: 320.0,
+          packetSpeed: 35.0,
+          attackDamageBits: 80.0,
           unitCount: 1,
-          icon: Icons.lock_clock_rounded,
-          color: AppColors.redTeam,
+          icon: Icons.lock_rounded,
+          color: AppColors.bastionHoneypot,
         ),
       ];
 }

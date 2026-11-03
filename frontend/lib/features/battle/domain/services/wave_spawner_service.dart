@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart';
 import 'package:promptsec_arena_front/game/components/data_packet_component.dart';
@@ -11,7 +10,6 @@ class WaveSpawnerService {
   int packetsSpawnedInWave = 0;
   int aliveEnemies = 0;
   double _spawnTimer = 0.0;
-  double _clientTimer = 0.0;
 
   bool _isWaveFinished = false;
 
@@ -46,7 +44,6 @@ class WaveSpawnerService {
     packetsSpawnedInWave = 0;
     aliveEnemies = 0;
     _spawnTimer = 0.0;
-    _clientTimer = 0.0;
     _isWaveFinished = false;
     debugPrint(
         '[WaveSpawner] Iniciando Onda $currentWave com $totalPacketsInCurrentWave pacotes');
@@ -57,29 +54,15 @@ class WaveSpawnerService {
     required double lane1X,
     required double lane2X,
     required double startY,
+    Vector2? direction,
     required void Function(DataPacketComponent packet) onSpawnPacket,
     required void Function(int completedWave) onWaveCompleted,
   }) {
     if (_isWaveFinished) return;
 
-    // 1. Spawner de Tráfego Legítimo de Clientes (Pacotes Verdes HTTPS)
-    _clientTimer += dt;
-    if (_clientTimer >= 3.5) {
-      _clientTimer = 0.0;
-      final laneX = Random().nextBool() ? lane1X : lane2X;
-      final clientPacket = DataPacketComponent(
-        startPosition: Vector2(laneX, startY),
-        origin: PacketOrigin.clientTraffic,
-        subtype: PacketSubtype.clientHttps,
-        direction: Vector2(0, 1),
-        speed: 100.0,
-        damage: 0,
-        maxHealth: 50.0,
-      );
-      onSpawnPacket(clientPacket);
-    }
+    final packetDirection = direction ?? Vector2(0, 1);
 
-    // 2. Spawner de Pacotes Inimigos de Ataque (Red Team)
+    // Spawner de Pacotes Inimigos de Ataque (Red Team)
     if (packetsSpawnedInWave < totalPacketsInCurrentWave) {
       _spawnTimer += dt;
       if (_spawnTimer >= spawnInterval) {
@@ -98,7 +81,7 @@ class WaveSpawnerService {
             startPosition: Vector2(targetX, startY),
             origin: PacketOrigin.redExploit,
             subtype: PacketSubtype.zeroDayPayload,
-            direction: Vector2(0, 1),
+            direction: packetDirection,
             speed: 65.0,
             maxHealth: 350.0,
             damage: 40.0, // Dano massivo ao Core
@@ -112,7 +95,7 @@ class WaveSpawnerService {
             startPosition: Vector2(targetX, startY),
             origin: PacketOrigin.redExploit,
             subtype: PacketSubtype.synFlood,
-            direction: Vector2(0, 1),
+            direction: packetDirection,
             speed: 180.0,
             maxHealth: 30.0,
             damage: 10.0,
@@ -125,7 +108,7 @@ class WaveSpawnerService {
             startPosition: Vector2(targetX, startY),
             origin: PacketOrigin.redExploit,
             subtype: PacketSubtype.portScanner,
-            direction: Vector2(0, 1),
+            direction: packetDirection,
             speed: 125.0,
             maxHealth: 60.0,
             damage: 20.0,

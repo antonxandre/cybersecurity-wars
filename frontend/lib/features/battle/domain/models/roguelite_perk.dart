@@ -39,7 +39,7 @@ class RoguelitePerk {
       RoguelitePerk(
         id: 'pqc_shield',
         name: 'Algoritmo PQC',
-        description: '+40% de blindagem pós-quântica; absorve danos críticos contra o LLM Core.',
+        description: '+40% de blindagem pós-quântica; absorve danos críticos contra o Mainframe.',
         category: PerkCategory.defense,
         tier: 1,
         icon: Icons.shield_rounded,
@@ -94,8 +94,8 @@ class RoguelitePerk {
       ),
       RoguelitePerk(
         id: 'sla_guardian',
-        name: 'Canary de SLA',
-        description: 'Restabelece +20% de SLA imediatamente e protege conexões legítimas.',
+        name: 'Canary de Integridade',
+        description: 'Restabelece +20% de integridade imediatamente e protege conexões legítimas.',
         category: PerkCategory.aiGuard,
         tier: 2,
         icon: Icons.verified_user_rounded,

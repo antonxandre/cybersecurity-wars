@@ -33,14 +33,14 @@ class LaserBeamEffect extends PositionComponent {
     final alpha = (1.0 - progress).clamp(0.0, 1.0);
 
     final glow = Paint()
-      ..color = beamColor.withOpacity(0.8 * alpha)
+      ..color = beamColor.withValues(alpha: 0.8 * alpha)
       ..strokeWidth = 6.0 * (1.0 - (progress * 0.3))
       ..strokeCap = StrokeCap.round
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4)
       ..style = PaintingStyle.stroke;
 
     final core = Paint()
-      ..color = const Color(0xFFFFFFFF).withOpacity(alpha)
+      ..color = const Color(0xFFFFFFFF).withValues(alpha: alpha)
       ..strokeWidth = 2.0 * (1.0 - (progress * 0.3))
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;

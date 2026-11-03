@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flame/components.dart';
+import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../features/battle/domain/models/mainframe_model.dart';
@@ -9,11 +10,12 @@ import 'laser_beam_effect.dart';
 /// Componente visual do Mainframe Central (O 'Rei' no Legion TD Cyber).
 /// Renderiza o rack de servidores com refrigeração líquida neon e defende a base
 /// com múltiplos feixes de laser simultâneos (de acordo com o ramLevel).
-class MainframeComponent extends PositionComponent {
+class MainframeComponent extends PositionComponent with TapCallbacks {
   final String teamId;
   final MainframeModel Function() getModel;
   final List<DataPacketComponent> Function() getEnemyPackets;
   final void Function(double damage)? onDamaged;
+  final void Function(MainframeComponent component)? onTapped;
 
   double _ledTimer = 0.0;
   double _pulseTimer = 0.0;
@@ -24,6 +26,7 @@ class MainframeComponent extends PositionComponent {
     required this.getModel,
     required this.getEnemyPackets,
     this.onDamaged,
+    this.onTapped,
     required Vector2 position,
     Vector2? size,
   }) : super(
@@ -32,6 +35,12 @@ class MainframeComponent extends PositionComponent {
           anchor: Anchor.center,
           priority: 5,
         );
+
+  @override
+  void onTapDown(TapDownEvent event) {
+    onTapped?.call(this);
+    event.handled = true;
+  }
 
   MainframeModel get model => getModel();
   bool get isBlue => teamId.contains('blue');

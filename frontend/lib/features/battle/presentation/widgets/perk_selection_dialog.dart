@@ -23,8 +23,8 @@ class PerkSelectionDialog extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: AppColors.surface.withOpacity(0.98),
-          borderRadius: BorderRadius.circular(20),
+          color: AppColors.surface.withValues(alpha: 0.98),
+          borderRadius: BorderRadius.zero,
           border: Border.all(color: AppColors.coreAi, width: 2),
           boxShadow: AppColors.neonGlow(AppColors.coreAi, blur: 24, spread: 2),
         ),
@@ -64,13 +64,13 @@ class PerkSelectionDialog extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: AppColors.cardSurface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: perk.categoryColor.withOpacity(0.6), width: 1.5),
+        borderRadius: BorderRadius.zero,
+        border: Border.all(color: perk.categoryColor.withValues(alpha: 0.6), width: 1.5),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.zero,
           onTap: () => onPerkSelected(perk),
           child: Padding(
             padding: const EdgeInsets.all(14),
@@ -79,8 +79,8 @@ class PerkSelectionDialog extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: perk.categoryColor.withOpacity(0.15),
-                    shape: BoxShape.circle,
+                    color: perk.categoryColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.zero,
                     border: Border.all(color: perk.categoryColor),
                   ),
                   child: Icon(perk.icon, color: perk.categoryColor, size: 24),
@@ -94,20 +94,20 @@ class PerkSelectionDialog extends StatelessWidget {
                         children: [
                           Text(
                             perk.name,
-                            style: AppTypography.displaySmall.copyWith(fontSize: 14),
+                            style: AppTypography.displaySmall.copyWith(fontSize: 15.0),
                           ),
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: AppColors.background,
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.zero,
                               border: Border.all(color: perk.categoryColor, width: 0.8),
                             ),
                             child: Text(
                               'TIER ${perk.tier}',
                               style: AppTypography.codeSmall.copyWith(
-                                fontSize: 9,
+                                fontSize: 11.0,
                                 color: perk.categoryColor,
                               ),
                             ),

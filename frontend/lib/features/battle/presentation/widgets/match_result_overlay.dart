@@ -5,15 +5,15 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/models/match_state.dart';
 
-/// Overlay de Fim de Jogo (Vitória ou Derrota) com Relatório Tático e Botão Reiniciar.
+/// Overlay de Fim de Jogo (Vitória ou Derrota) com Relatório Tático e Retorno ao Lobby.
 class MatchResultOverlay extends StatelessWidget {
   final MatchState state;
-  final VoidCallback onPlayAgain;
+  final VoidCallback? onBackToLobby;
 
   const MatchResultOverlay({
     super.key,
     required this.state,
-    required this.onPlayAgain,
+    this.onBackToLobby,
   });
 
   bool get isVictory => state.phase == MatchPhase.victory;
@@ -24,14 +24,12 @@ class MatchResultOverlay extends StatelessWidget {
     final title = isVictory ? 'FORTALEZA DEFENDIDA!' : 'SISTEMA COMPROMETIDO!';
     final subtitle = isVictory
         ? 'Todas as 3 ondas de ataque foram neutralizadas com sucesso.'
-        : (state.coreAiIntegrity <= 0
-            ? 'O LLM Core foi corrompido por injeções de exploit.'
-            : 'O SLA de negócio chegou a 0% devido a falhas de disponibilidade.');
+        : 'A integridade do Mainframe foi comprometida por ataques adversários.';
 
     return BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
       child: Container(
-        color: Colors.black.withOpacity(0.75),
+        color: Colors.black.withValues(alpha: 0.75),
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
         child: ConstrainedBox(
@@ -40,7 +38,7 @@ class MatchResultOverlay extends StatelessWidget {
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.zero,
               border: Border.all(color: primaryColor, width: 2),
               boxShadow: AppColors.neonGlow(primaryColor, blur: 24, spread: 2),
             ),
@@ -51,8 +49,8 @@ class MatchResultOverlay extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: primaryColor.withOpacity(0.15),
-                    shape: BoxShape.circle,
+                    color: primaryColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.zero,
                     border: Border.all(color: primaryColor, width: 2),
                   ),
                   child: Icon(
@@ -103,102 +101,45 @@ class MatchResultOverlay extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _buildStatTile(
-                        label: 'LLM CORE FINAL',
-                        value: '${state.coreAiIntegrity.toInt()}%',
-                        color: AppColors.coreAi,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildStatTile(
-                        label: 'SLA DE NEGÓCIO',
-                        value: '${state.slaPercentage.toInt()}%',
-                        color: state.slaPercentage > 50 ? AppColors.bandwidth : AppColors.redTeam,
+                        label: 'TOTAL DE VAZAMENTOS (LEAKS)',
+                        value: '${state.totalLeaks}',
+                        color: state.totalLeaks > 0 ? AppColors.redTeam : AppColors.bandwidth,
                       ),
                     ),
                   ],
                 ),
 
-                // Lista de Perks Acumulados
-                if (state.activePerks.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text('PERKS ATIVADOS:', style: AppTypography.codeSmall),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: state.activePerks.map((p) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: p.categoryColor.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: p.categoryColor, width: 0.8),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(p.icon, size: 12, color: p.categoryColor),
-                            const SizedBox(width: 4),
-                            Text(
-                              p.name,
-                              style: AppTypography.codeSmall.copyWith(fontSize: 10, color: p.categoryColor),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-
                 const SizedBox(height: 24),
-                // Botões de Ação Final
-                Row(
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 46,
-                        child: OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: AppColors.border),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                          onPressed: () => context.go('/lobby'),
-                          icon: const Icon(Icons.meeting_room_rounded, size: 16),
-                          label: Text('LOBBY', style: AppTypography.codeSmall),
-                        ),
+                // Botão de Retorno ao Lobby (Única ação disponível)
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      foregroundColor: AppColors.background,
+                      elevation: 8,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.zero,
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      flex: 2,
-                      child: SizedBox(
-                        height: 46,
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryColor,
-                            foregroundColor: AppColors.background,
-                            elevation: 8,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          onPressed: onPlayAgain,
-                          icon: const Icon(Icons.replay_rounded),
-                          label: Text(
-                            'JOGAR NOVAMENTE',
-                            style: AppTypography.codeMedium.copyWith(
-                              color: AppColors.background,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
+                    onPressed: () {
+                      if (onBackToLobby != null) {
+                        onBackToLobby!();
+                      } else {
+                        context.go('/lobby');
+                      }
+                    },
+                    icon: const Icon(Icons.meeting_room_rounded),
+                    label: Text(
+                      'VOLTAR PARA O LOBBY',
+                      style: AppTypography.codeMedium.copyWith(
+                        color: AppColors.background,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13.5,
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -213,17 +154,17 @@ class MatchResultOverlay extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.cardSurface,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.zero,
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: AppTypography.codeSmall.copyWith(fontSize: 9)),
+          Text(label, style: AppTypography.codeSmall.copyWith(fontSize: 11.5)),
           const SizedBox(height: 4),
           Text(
             value,
-            style: AppTypography.codeLarge.copyWith(color: color, fontSize: 16),
+            style: AppTypography.codeLarge.copyWith(color: color, fontSize: 18.0),
           ),
         ],
       ),

@@ -1,58 +1,61 @@
-/// Estado da Economia Dupla da Partida (Bits e Tokens estilo Legion TD).
-/// Gerencia os recursos defensivos, ofensivos, mineradores e a renda permanente.
+import '../../../../core/rules/game_rule_engine.dart';
+
+/// Estado da Economia Simétrica da Partida (Tokens & Bits).
+/// - Tokens: Moeda defensiva para alocação de nós no grid 4x4 e compra de mineradores.
+/// - Bits: Moeda acumulada continuamente via mineração nos mineradores para enviar ataques.
 class MatchEconomyState {
-  final int bits;
   final int tokens;
+  final int bits;
   final int minersCount;
-  final int baseIncomeBits;
-  final int virusIncomeBonus;
-  final double fractionalTokens;
+  final int baseIncomeTokens;
+  final int attackIncomeBonusTokens;
+  final double fractionalBits;
 
   const MatchEconomyState({
-    required this.bits,
     required this.tokens,
-    this.minersCount = 1,
-    this.baseIncomeBits = 60,
-    this.virusIncomeBonus = 0,
-    this.fractionalTokens = 0.0,
+    required this.bits,
+    this.minersCount = GameRuleEngine.initialMiners,
+    this.baseIncomeTokens = GameRuleEngine.baseRoundIncomeTokens,
+    this.attackIncomeBonusTokens = 0,
+    this.fractionalBits = 0.0,
   });
 
   /// Estado inicial equilibrado para o início da Partida
   factory MatchEconomyState.initial() {
     return const MatchEconomyState(
-      bits: 120, // Suficiente para posicionar 1 ou 2 nós básicos
-      tokens: 40, // Suficiente para enviar o primeiro malware leve ou upar hardware
-      minersCount: 1,
-      baseIncomeBits: 60,
-      virusIncomeBonus: 0,
-      fractionalTokens: 0.0,
+      tokens: GameRuleEngine.initialTokens, // 120 Tokens para nós e infraestrutura
+      bits: GameRuleEngine.initialBits,     // 0 Bits (gerados via mineração)
+      minersCount: GameRuleEngine.initialMiners,
+      baseIncomeTokens: GameRuleEngine.baseRoundIncomeTokens,
+      attackIncomeBonusTokens: 0,
+      fractionalBits: 0.0,
     );
   }
 
-  /// Custo em Bits para recrutar um novo Processo Minerador de Tokens
-  int get minerCostBits => 50 + ((minersCount - 1) * 15);
+  /// Custo em Tokens para recrutar um novo HashMiner Daemon
+  int get minerCostTokens => GameRuleEngine.calculateMinerCostTokens(minersCount);
+  int get minerCost => minerCostTokens;
 
   /// Limite máximo de mineradores concorrentes
-  int get maxMiners => 12;
+  int get maxMiners => GameRuleEngine.maxMinersPerPlayer;
 
-  bool get canRecruitMiner => bits >= minerCostBits && minersCount < maxMiners;
+  bool get canRecruitMiner => GameRuleEngine.canRecruitMiner(
+        currentTokens: tokens,
+        currentMinersCount: minersCount,
+      );
+  bool get canAffordMiner => canRecruitMiner;
 
-  /// Renda permanente total de Bits recebida no fim de cada rodada
-  int get totalIncomeBits => baseIncomeBits + virusIncomeBonus;
+  /// Renda permanente total de Tokens recebida no encerramento de cada rodada
+  int get totalIncomeTokens => GameRuleEngine.calculateRoundTokensIncome(
+        baseIncome: baseIncomeTokens,
+        virusIncomeBonus: attackIncomeBonusTokens,
+      );
+  int get permanentIncomeTokens => totalIncomeTokens;
 
-  /// Taxa de geração de Tokens por segundo (baseada na quantidade de mineradores)
-  double get tokenRatePerSecond => 0.5 + (minersCount * 0.4);
+  /// Taxa de geração de Bits por segundo (baseada na quantidade de mineradores)
+  double get bitRatePerSecond => GameRuleEngine.calculateBitMiningRate(minersCount);
 
   // --- Operações Econômicas ---
-
-  MatchEconomyState spendBits(int amount) {
-    if (bits < amount) return this;
-    return copyWith(bits: bits - amount);
-  }
-
-  MatchEconomyState addBits(int amount) {
-    return copyWith(bits: bits + amount);
-  }
 
   MatchEconomyState spendTokens(int amount) {
     if (tokens < amount) return this;
@@ -63,62 +66,71 @@ class MatchEconomyState {
     return copyWith(tokens: tokens + amount);
   }
 
-  /// Envio de vírus ao oponente aumenta a renda permanente de Bits!
-  MatchEconomyState registerVirusSent({required int tokenCost, required int incomeBonus}) {
-    if (tokens < tokenCost) return this;
+  MatchEconomyState spendBits(int amount) {
+    if (bits < amount) return this;
+    return copyWith(bits: bits - amount);
+  }
+
+  MatchEconomyState addBits(int amount) {
+    return copyWith(bits: bits + amount);
+  }
+
+  /// Envio de ataque ao oponente gasta Bits e aumenta a renda de Tokens por rodada!
+  MatchEconomyState registerAttackSent({required int bitCost, required int incomeBonusTokens}) {
+    if (bits < bitCost) return this;
     return copyWith(
-      tokens: tokens - tokenCost,
-      virusIncomeBonus: virusIncomeBonus + incomeBonus,
+      bits: bits - bitCost,
+      attackIncomeBonusTokens: attackIncomeBonusTokens + incomeBonusTokens,
     );
   }
 
-  /// Recruta um novo minerador gastando Bits
+  /// Recruta um novo HashMiner gastando Tokens
   MatchEconomyState recruitMiner() {
     if (!canRecruitMiner) return this;
     return copyWith(
-      bits: bits - minerCostBits,
+      tokens: tokens - minerCostTokens,
       minersCount: minersCount + 1,
     );
   }
 
-  /// Executa o pagamento de renda no final de cada rodada de combate
+  /// Executa o pagamento de renda de Tokens no encerramento de cada rodada de combate
   MatchEconomyState applyRoundIncome() {
     return copyWith(
-      bits: bits + totalIncomeBits,
+      tokens: tokens + totalIncomeTokens,
     );
   }
 
-  /// Atualização contínua de geração de tokens durante a partida
-  MatchEconomyState updateTokenGeneration(double dt) {
-    final added = fractionalTokens + (tokenRatePerSecond * dt);
-    final integerTokens = added.floor();
-    final remainder = added - integerTokens;
+  /// Atualização contínua de mineração de Bits durante a partida
+  MatchEconomyState updateBitGeneration(double dt) {
+    final added = fractionalBits + (bitRatePerSecond * dt);
+    final integerBits = added.floor();
+    final remainder = added - integerBits;
 
-    if (integerTokens > 0) {
+    if (integerBits > 0) {
       return copyWith(
-        tokens: tokens + integerTokens,
-        fractionalTokens: remainder,
+        bits: bits + integerBits,
+        fractionalBits: remainder,
       );
     }
 
-    return copyWith(fractionalTokens: added);
+    return copyWith(fractionalBits: added);
   }
 
   MatchEconomyState copyWith({
-    int? bits,
     int? tokens,
+    int? bits,
     int? minersCount,
-    int? baseIncomeBits,
-    int? virusIncomeBonus,
-    double? fractionalTokens,
+    int? baseIncomeTokens,
+    int? attackIncomeBonusTokens,
+    double? fractionalBits,
   }) {
     return MatchEconomyState(
-      bits: bits ?? this.bits,
       tokens: tokens ?? this.tokens,
+      bits: bits ?? this.bits,
       minersCount: minersCount ?? this.minersCount,
-      baseIncomeBits: baseIncomeBits ?? this.baseIncomeBits,
-      virusIncomeBonus: virusIncomeBonus ?? this.virusIncomeBonus,
-      fractionalTokens: fractionalTokens ?? this.fractionalTokens,
+      baseIncomeTokens: baseIncomeTokens ?? this.baseIncomeTokens,
+      attackIncomeBonusTokens: attackIncomeBonusTokens ?? this.attackIncomeBonusTokens,
+      fractionalBits: fractionalBits ?? this.fractionalBits,
     );
   }
 }

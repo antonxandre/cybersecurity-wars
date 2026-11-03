@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/fullscreen_helper.dart';
 import '../../domain/models/auth_user.dart';
 import '../../domain/services/auth_service.dart';
 
@@ -52,6 +54,9 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!res.success) {
         setState(() => _errorMessage = res.errorMessage);
       } else {
+        if (!kDebugMode && FullscreenHelper.isAutoFullscreen) {
+          FullscreenHelper.enterFullscreen();
+        }
         context.go('/lobby');
       }
     } else {
@@ -65,12 +70,18 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!res.success) {
         setState(() => _errorMessage = res.errorMessage);
       } else {
+        if (!kDebugMode && FullscreenHelper.isAutoFullscreen) {
+          FullscreenHelper.enterFullscreen();
+        }
         context.go('/lobby');
       }
     }
   }
 
   void _quickDemoLogin(UserRole role) {
+    if (!kDebugMode && FullscreenHelper.isAutoFullscreen) {
+      FullscreenHelper.enterFullscreen();
+    }
     AuthService.instance.loginDemo(role);
     context.go('/lobby');
   }
@@ -81,17 +92,41 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 440),
-            child: Container(
+      body: Stack(
+        children: [
+          Positioned(
+            top: 16,
+            right: 16,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: 'Alternar Tela Cheia',
+                  icon: const Icon(Icons.fullscreen_rounded, color: AppColors.textPrimary, size: 22),
+                  onPressed: () {
+                    FullscreenHelper.toggleFullscreen();
+                    setState(() {});
+                  },
+                ),
+                IconButton(
+                  tooltip: 'Configurações do Sistema',
+                  icon: const Icon(Icons.settings_rounded, color: AppColors.blueTeam, size: 22),
+                  onPressed: () => context.push('/settings'),
+                ),
+              ],
+            ),
+          ),
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: Container(
               padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: activeColor.withOpacity(0.6), width: 1.5),
+                border: Border.all(color: activeColor.withValues(alpha: 0.6), width: 1.5),
                 boxShadow: AppColors.neonGlow(activeColor, blur: 20, spread: 1),
               ),
               child: Column(
@@ -132,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               decoration: BoxDecoration(
-                                color: !_isRegisterMode ? activeColor.withOpacity(0.2) : Colors.transparent,
+                                color: !_isRegisterMode ? activeColor.withValues(alpha: 0.2) : Colors.transparent,
                                 borderRadius: BorderRadius.circular(9),
                                 border: !_isRegisterMode ? Border.all(color: activeColor) : null,
                               ),
@@ -153,7 +188,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               decoration: BoxDecoration(
-                                color: _isRegisterMode ? activeColor.withOpacity(0.2) : Colors.transparent,
+                                color: _isRegisterMode ? activeColor.withValues(alpha: 0.2) : Colors.transparent,
                                 borderRadius: BorderRadius.circular(9),
                                 border: _isRegisterMode ? Border.all(color: activeColor) : null,
                               ),
@@ -185,7 +220,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
                             backgroundColor: _selectedRole == UserRole.blueTeam
-                                ? AppColors.blueTeam.withOpacity(0.15)
+                                ? AppColors.blueTeam.withValues(alpha: 0.15)
                                 : AppColors.cardSurface,
                             side: BorderSide(
                               color: _selectedRole == UserRole.blueTeam ? AppColors.blueTeam : AppColors.border,
@@ -207,7 +242,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
                             backgroundColor: _selectedRole == UserRole.redTeam
-                                ? AppColors.redTeam.withOpacity(0.15)
+                                ? AppColors.redTeam.withValues(alpha: 0.15)
                                 : AppColors.cardSurface,
                             side: BorderSide(
                               color: _selectedRole == UserRole.redTeam ? AppColors.redTeam : AppColors.border,
@@ -267,7 +302,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: AppColors.redTeam.withOpacity(0.15),
+                        color: AppColors.redTeam.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: AppColors.redTeam),
                       ),
@@ -360,7 +395,9 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
-    );
+    ],
+  ),
+);
   }
 
   Widget _buildTextField({

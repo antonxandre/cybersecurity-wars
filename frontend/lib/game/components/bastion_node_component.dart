@@ -34,11 +34,11 @@ class BastionNodeComponent extends PositionComponent with HasGameReference<Cyber
     final color = node.nodeColor;
 
     _rangePaint = Paint()
-      ..color = color.withOpacity(0.08)
+      ..color = color.withValues(alpha: 0.08)
       ..style = PaintingStyle.fill;
 
     _rangeBorderPaint = Paint()
-      ..color = color.withOpacity(0.35)
+      ..color = color.withValues(alpha: 0.35)
       ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke;
 
@@ -52,7 +52,7 @@ class BastionNodeComponent extends PositionComponent with HasGameReference<Cyber
       ..style = PaintingStyle.stroke;
 
     _glowPaint = Paint()
-      ..color = color.withOpacity(0.4)
+      ..color = color.withValues(alpha: 0.4)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
   }
 
@@ -107,7 +107,7 @@ class BastionNodeComponent extends PositionComponent with HasGameReference<Cyber
         canvas.drawPath(path, glyphPaint);
         break;
 
-      case BastionNodeType.idsSentinel:
+      case BastionNodeType.ids:
         // Desenha uma Mira Radar com círculos concêntricos
         canvas.drawCircle(center, 6, glyphPaint);
         canvas.drawLine(
@@ -122,7 +122,7 @@ class BastionNodeComponent extends PositionComponent with HasGameReference<Cyber
         );
         break;
 
-      case BastionNodeType.wafProxy:
+      case BastionNodeType.proxy:
         // Desenha um Funil de Filtro Semântico
         final path = Path()
           ..moveTo(center.dx - 8, center.dy - 8)
@@ -137,7 +137,7 @@ class BastionNodeComponent extends PositionComponent with HasGameReference<Cyber
 
       case BastionNodeType.honeypot:
         // Desenha um Hexágono de Colmeia
-        final r = 8.0;
+        const r = 8.0;
         final path = Path();
         for (int i = 0; i < 6; i++) {
           final angle = (i * 60) * (pi / 180);
@@ -153,7 +153,7 @@ class BastionNodeComponent extends PositionComponent with HasGameReference<Cyber
         canvas.drawPath(path, glyphPaint);
         break;
 
-      case BastionNodeType.vpnGateway:
+      case BastionNodeType.vpn:
         // Desenha uma Chave / Cadeado
         canvas.drawCircle(Offset(center.dx, center.dy - 3), 4, glyphPaint);
         canvas.drawRect(
@@ -165,8 +165,8 @@ class BastionNodeComponent extends PositionComponent with HasGameReference<Cyber
   }
 
   void _renderHealthBar(Canvas canvas, Offset center) {
-    final barWidth = 32.0;
-    final barHeight = 4.0;
+    const barWidth = 32.0;
+    const barHeight = 4.0;
     final barLeft = center.dx - (barWidth / 2);
     final barTop = center.dy - (size.y / 2) - 8;
 

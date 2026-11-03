@@ -3,7 +3,6 @@ import '../../../../core/commands/game_command.dart';
 import '../../domain/models/bastion_node.dart';
 import '../../domain/models/game_card.dart';
 import '../../domain/models/match_state.dart';
-import '../../domain/models/roguelite_perk.dart';
 import '../viewmodels/battle_view_model.dart';
 
 /// Comando para Construir Nó de Defesa na Fase de Preparação (Legion TD).
@@ -20,15 +19,15 @@ class BuildBastionNodeCommand extends GameCommand<BattleViewModel> {
   bool get canUndo => true;
 
   @override
-  int get resourceCost => node.cpuCost;
+  int get resourceCost => node.tokenCost;
 
   @override
   bool canExecute(BattleViewModel vm) {
     final state = vm.state.value;
     // Só é permitido na fase de preparação
     if (state.phase != MatchPhase.preparation) return false;
-    // Verifica orçamento de CPU
-    if (state.cpuBudget < node.cpuCost) return false;
+    // Verifica saldo de Tokens
+    if (state.tokens < node.tokenCost) return false;
     // Verifica se a célula já está ocupada
     final key = '${node.gridX},${node.gridY}';
     return !state.nodes.containsKey(key);
@@ -41,23 +40,23 @@ class BuildBastionNodeCommand extends GameCommand<BattleViewModel> {
     final updatedNodes = Map<String, BastionNode>.from(state.nodes)..[key] = node;
 
     vm.updateState(state.copyWith(
-      cpuBudget: state.cpuBudget - node.cpuCost,
+      tokens: state.tokens - node.tokenCost,
       nodes: updatedNodes,
     ));
     debugPrint('[BuildCommand] Nó construído em ($key): ${node.name}');
   }
 
   @override
-  Future<void> undo(BattleViewModel vm) async {
-    final state = vm.state.value;
+  Future<void> undo(BattleViewModel context) async {
+    final state = context.state.value;
     final key = '${node.gridX},${node.gridY}';
     final updatedNodes = Map<String, BastionNode>.from(state.nodes)..remove(key);
 
-    vm.updateState(state.copyWith(
-      cpuBudget: state.cpuBudget + node.cpuCost,
+    context.updateState(state.copyWith(
+      tokens: state.tokens + node.tokenCost,
       nodes: updatedNodes,
     ));
-    debugPrint('[BuildCommand] Desfeita construção de ($key). Reembolsados ${node.cpuCost} CPU');
+    debugPrint('[BuildCommand] Desfeita construção de ($key). Reembolsados ${node.tokenCost} Tokens');
   }
 }
 
@@ -89,23 +88,23 @@ class DismantleBastionNodeCommand extends GameCommand<BattleViewModel> {
     final updatedNodes = Map<String, BastionNode>.from(state.nodes)..remove(key);
 
     vm.updateState(state.copyWith(
-      cpuBudget: state.cpuBudget + node.cpuCost,
+      tokens: state.tokens + node.tokenCost,
       nodes: updatedNodes,
     ));
-    debugPrint('[DismantleCommand] Nó desmontado em ($key). Reembolsados ${node.cpuCost} CPU');
+    debugPrint('[DismantleCommand] Nó desmontado em ($key). Reembolsados ${node.tokenCost} Tokens');
   }
 
   @override
-  Future<void> undo(BattleViewModel vm) async {
-    final state = vm.state.value;
+  Future<void> undo(BattleViewModel context) async {
+    final state = context.state.value;
     final key = '${node.gridX},${node.gridY}';
     final updatedNodes = Map<String, BastionNode>.from(state.nodes)..[key] = node;
 
-    vm.updateState(state.copyWith(
-      cpuBudget: state.cpuBudget - node.cpuCost,
+    context.updateState(state.copyWith(
+      tokens: state.tokens - node.tokenCost,
       nodes: updatedNodes,
     ));
-    debugPrint('[DismantleCommand] Desfeita desmontagem de ($key). Gastos novamente ${node.cpuCost} CPU');
+    debugPrint('[DismantleCommand] Desfeita desmontagem de ($key). Gastos novamente ${node.tokenCost} Tokens');
   }
 }
 
@@ -158,71 +157,6 @@ class DeployCardCommand extends GameCommand<BattleViewModel> {
     // Notifica o motor Flame para disparar os pacotes visuais na rota escolhida
     vm.onCardDispatchedToFlame(card, targetLane);
     debugPrint('[DeployCardCommand] Carta ${card.name} despachada na Lane $targetLane');
-  }
-}
-
-/// Comando para Selecionar Perk Roguelite (Archero) e aplicar seus modificadores no jogo.
-class SelectPerkCommand extends GameCommand<BattleViewModel> {
-  final RoguelitePerk perk;
-
-  const SelectPerkCommand(this.perk);
-
-  @override
-  String get commandType => 'SELECT_PERK';
-
-  @override
-  bool canExecute(BattleViewModel vm) {
-    return vm.state.value.phase == MatchPhase.perkDraft;
-  }
-
-  @override
-  Future<void> execute(BattleViewModel vm) async {
-    final state = vm.state.value;
-    final updatedPerks = List<RoguelitePerk>.from(state.activePerks)..add(perk);
-
-    // Aplica o modificador correspondente do perk aos atributos globais
-    double damageMultiplier = state.damageMultiplier;
-    double bandwidthRegenRate = state.bandwidthRegenRate;
-    double damageReduction = state.damageReduction;
-    double maxBandwidth = state.maxBandwidth;
-    double sla = state.slaPercentage;
-
-    switch (perk.id) {
-      case 'pqc_shield':
-        damageReduction = (damageReduction + 0.40).clamp(0.0, 0.85);
-        break;
-      case 'cpu_overclock':
-        bandwidthRegenRate += 0.20;
-        break;
-      case 'laser_amplifier':
-        damageMultiplier += 0.35;
-        break;
-      case 'regex_deep_inspect':
-        damageReduction = (damageReduction + 0.25).clamp(0.0, 0.85);
-        break;
-      case 'honeypot_reflect':
-        damageMultiplier += 0.25;
-        break;
-      case 'bandwidth_cache':
-        maxBandwidth = 12.0;
-        break;
-      case 'sla_guardian':
-        sla = (sla + 20.0).clamp(0.0, 100.0);
-        break;
-    }
-
-    // Retoma a partida para a próxima fase de batalha com os modificadores aplicados
-    vm.updateState(state.copyWith(
-      phase: MatchPhase.battle,
-      activePerks: updatedPerks,
-      draftOptions: [],
-      damageMultiplier: damageMultiplier,
-      bandwidthRegenRate: bandwidthRegenRate,
-      damageReduction: damageReduction,
-      maxBandwidth: maxBandwidth,
-      slaPercentage: sla,
-    ));
-    debugPrint('[SelectPerkCommand] Perk ${perk.name} aplicado! DanoMult=$damageMultiplier, RegenRate=$bandwidthRegenRate');
   }
 }
 

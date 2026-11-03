@@ -21,7 +21,7 @@ class AppColors {
   static const Color redTeamSecondary = Color(0xFFFF5500);
   static const Color redTeamGlow = Color(0x66FF3366);
 
-  // Inteligência Artificial & LLM Core
+  // Inteligência Artificial & Core
   static const Color coreAi = Color(0xFFBD00FF);
   static const Color coreAiSecondary = Color(0xFF7928CA);
   static const Color coreAiGlow = Color(0x66BD00FF);
@@ -40,6 +40,13 @@ class AppColors {
   static const Color statusRestricted = Color(0xFFFFCC00); // Restrita IP
   static const Color statusClosed = Color(0xFF00F0FF); // Fechada / Protegida
   static const Color statusRedirect = Color(0xFFBD00FF); // 301 Redirect
+
+  // Unidades Táticas (Bastiões Defensivos)
+  static const Color bastionFirewall = Color(0xFFFF5500); // Laranja Coral (Tanque)
+  static const Color bastionProxy = Color(0xFF00D4FF);    // Ciano Neon (Curta Distância)
+  static const Color bastionVpn = Color(0xFF00FF88);      // Esmeralda Matrix (Buff em Área)
+  static const Color bastionIds = Color(0xFFBD00FF);      // Púrpura Neon (Sniper Longo Alcance)
+  static const Color bastionHoneypot = Color(0xFFFFCC00); // Âmbar Dourado (Controle / Slow)
 
   // Tipografia
   static const Color textPrimary = Color(0xFFF0F6FC);
@@ -75,7 +82,7 @@ class AppColors {
   static List<BoxShadow> neonGlow(Color color, {double blur = 12, double spread = 1}) {
     return [
       BoxShadow(
-        color: color.withOpacity(0.5),
+        color: color.withValues(alpha: 0.5),
         blurRadius: blur,
         spreadRadius: spread,
       ),

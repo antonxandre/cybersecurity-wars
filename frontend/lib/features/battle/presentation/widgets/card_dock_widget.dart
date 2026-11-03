@@ -21,12 +21,12 @@ class CardDockWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.surface.withOpacity(0.95),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        color: AppColors.surface.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.zero,
         border: const Border(top: BorderSide(color: AppColors.borderGlow, width: 1.5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.6),
+            color: Colors.black.withValues(alpha: 0.6),
             blurRadius: 16,
             offset: const Offset(0, -4),
           ),
@@ -61,7 +61,7 @@ class CardDockWidget extends StatelessWidget {
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
             color: AppColors.cardSurface,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.zero,
             border: Border.all(
               color: canAfford ? card.rarityColor : AppColors.border,
               width: canAfford ? 1.8 : 1.0,
@@ -80,7 +80,7 @@ class CardDockWidget extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                   decoration: BoxDecoration(
                     color: AppColors.background,
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.zero,
                     border: Border.all(color: AppColors.bandwidth),
                   ),
                   child: Row(
@@ -128,7 +128,7 @@ class CardDockWidget extends StatelessWidget {
       context: context,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.zero,
       ),
       builder: (ctx) {
         return Padding(
@@ -153,6 +153,7 @@ class CardDockWidget extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.cardSurface,
                         side: const BorderSide(color: AppColors.blueTeam),
+                        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                       ),
                       onPressed: () {
                         Navigator.pop(ctx);
@@ -168,6 +169,7 @@ class CardDockWidget extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.cardSurface,
                         side: const BorderSide(color: AppColors.redTeam),
+                        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                       ),
                       onPressed: () {
                         Navigator.pop(ctx);

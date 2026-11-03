@@ -1,0 +1,346 @@
+import 'dart:async';
+import 'dart:math';
+import 'package:flutter/foundation.dart';
+import '../../data/lobby_mock_repository.dart';
+import '../../domain/models/lobby_models.dart';
+
+/// ViewModel reativo do Lobby de Jogo com suporte a matchmaking simulado,
+/// gerenciamento de party e validação de segurança OWASP A03.
+class LobbyViewModel extends ChangeNotifier {
+  final LobbyRepository _repository;
+
+  LobbyMode _currentMode = LobbyMode.createRoom;
+  AiDifficulty _aiDifficulty = AiDifficulty.operador;
+  bool _is2v2 = true;
+  late String _generatedRoomCode;
+  String _roomCodeInput = '';
+
+  late PlayerProfile _profile;
+  late List<LobbyFriend> _friends;
+  late List<LobbyNewsItem> _news;
+  late List<PublicRoom> _publicRooms;
+
+  final List<String> _partyMembers = ['Você (Host)'];
+  PublicRoom? _activeWaitingRoom;
+
+  MatchmakingPhase _matchmakingPhase = MatchmakingPhase.idle;
+  int _matchmakingElapsedSeconds = 0;
+  Timer? _matchmakingTicker;
+  Timer? _matchmakingTransitionTimer;
+
+  LobbyViewModel({LobbyRepository? repository})
+      : _repository = repository ?? const LobbyMockRepository() {
+    _loadInitialData();
+    _regenerateRoomCodeInternal();
+  }
+
+  // Getters de Estado
+  LobbyMode get currentMode => _currentMode;
+  AiDifficulty get aiDifficulty => _aiDifficulty;
+  bool get is2v2 => _is2v2;
+  String get generatedRoomCode => _generatedRoomCode;
+  String get roomCodeInput => _roomCodeInput;
+  PlayerProfile get profile => _profile;
+  List<LobbyFriend> get friends => List.unmodifiable(_friends);
+  List<LobbyNewsItem> get news => List.unmodifiable(_news);
+  List<PublicRoom> get publicRooms => List.unmodifiable(_publicRooms);
+  List<String> get partyMembers => List.unmodifiable(_partyMembers);
+  PublicRoom? get activeWaitingRoom => _activeWaitingRoom;
+  bool get isInWaitingRoom => _activeWaitingRoom != null;
+  MatchmakingPhase get matchmakingPhase => _matchmakingPhase;
+  int get matchmakingElapsedSeconds => _matchmakingElapsedSeconds;
+  bool get isSearchingMatch => _matchmakingPhase.isActive;
+
+  int get maxPartySlots => _is2v2 ? 4 : 2;
+
+  void _loadInitialData() {
+    _profile = _repository.getPlayerProfile();
+    _friends = _repository.getFriends();
+    _news = _repository.getNews();
+    _publicRooms = List<PublicRoom>.from(_repository.getPublicRooms());
+  }
+
+  void setMode(LobbyMode mode) {
+    if (_currentMode == mode) return;
+    _currentMode = mode;
+    notifyListeners();
+  }
+
+  void setAiDifficulty(AiDifficulty difficulty) {
+    if (_aiDifficulty == difficulty) return;
+    _aiDifficulty = difficulty;
+    notifyListeners();
+  }
+
+  void setIs2v2(bool value) {
+    if (_is2v2 == value) return;
+    _is2v2 = value;
+    // Se mudou para 1v1 e a party excede o limite, ajusta slots
+    if (!_is2v2 && _partyMembers.length > 2) {
+      _partyMembers.removeRange(2, _partyMembers.length);
+    }
+    notifyListeners();
+  }
+
+  void setRoomCodeInput(String value) {
+    _roomCodeInput = value.toUpperCase().trim();
+    notifyListeners();
+  }
+
+  void regenerateRoomCode() {
+    _regenerateRoomCodeInternal();
+    notifyListeners();
+  }
+
+  void _regenerateRoomCodeInternal() {
+    final rand = Random();
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    final part1 = List.generate(3, (_) => chars[rand.nextInt(chars.length)]).join();
+    final part2 = List.generate(3, (_) => chars[rand.nextInt(chars.length)]).join();
+    _generatedRoomCode = '$part1-$part2';
+  }
+
+  /// Validação e sanitização estrita de código de sala (OWASP A03: Injection mitigation).
+  /// Permite apenas letras maiúsculas e números no formato AAA-999.
+  static String? sanitizeAndValidateRoomCode(String input) {
+    final clean = input.trim().toUpperCase();
+    final regex = RegExp(r'^[A-Z0-9]{3}-[A-Z0-9]{3}$');
+    if (!regex.hasMatch(clean)) {
+      return null;
+    }
+    return clean;
+  }
+
+  /// Define o nome de usuário do anfitrião da sala (evitando hardcoded 'Você (Host)').
+  void setHostUsername(String name) {
+    final hostLabel = name.trim().isNotEmpty ? '$name (Host)' : 'Você (Host)';
+    if (_partyMembers.isEmpty) {
+      _partyMembers.add(hostLabel);
+    } else {
+      _partyMembers[0] = hostLabel;
+    }
+    notifyListeners();
+  }
+
+  /// Adiciona dinamicamente um novo amigo à lista.
+  void addFriend(String name) {
+    final cleanName = name.trim();
+    if (cleanName.isEmpty) return;
+    if (_friends.any((f) => f.name.toLowerCase() == cleanName.toLowerCase())) return;
+
+    final newFriend = LobbyFriend(
+      id: 'fr_${DateTime.now().millisecondsSinceEpoch}',
+      name: cleanName,
+      status: FriendStatus.online,
+      level: 1,
+      activity: 'Disponível no Lobby',
+    );
+    _friends.add(newFriend);
+    notifyListeners();
+  }
+
+  /// Remove amigo da lista.
+  void removeFriend(String id) {
+    _friends.removeWhere((f) => f.id == id);
+    notifyListeners();
+  }
+
+  /// Convidar amigo para a party da sala.
+  bool inviteFriend(LobbyFriend friend) {
+    if (!friend.canInvite) return false;
+    if (_partyMembers.contains(friend.name)) return false;
+    if (_partyMembers.length >= maxPartySlots) return false;
+
+    _partyMembers.add(friend.name);
+    notifyListeners();
+    return true;
+  }
+
+  /// Remover membro convidado da party.
+  void removePartyMember(int index) {
+    if (index <= 0 || index >= _partyMembers.length) return; // Não remove o host
+    _partyMembers.removeAt(index);
+    notifyListeners();
+  }
+
+  /// Inicia a simulação de Matchmaking cinematográfico.
+  void startMatchmaking({required VoidCallback onReadyToLaunch}) {
+    if (_matchmakingPhase != MatchmakingPhase.idle) return;
+
+    _cancelTimers();
+    _matchmakingPhase = MatchmakingPhase.searching;
+    _matchmakingElapsedSeconds = 0;
+    notifyListeners();
+
+    // Contador de segundos
+    _matchmakingTicker = Timer.periodic(const Duration(seconds: 1), (timer) {
+      _matchmakingElapsedSeconds++;
+      notifyListeners();
+    });
+
+    // Simulação determinística de tempo de fila (entre 2 e 3 segundos para fluidez)
+    _matchmakingTransitionTimer = Timer(const Duration(milliseconds: 2400), () {
+      _matchmakingPhase = MatchmakingPhase.found;
+      notifyListeners();
+
+      _matchmakingTransitionTimer = Timer(const Duration(milliseconds: 1000), () {
+        _matchmakingPhase = MatchmakingPhase.launching;
+        notifyListeners();
+
+        _matchmakingTransitionTimer = Timer(const Duration(milliseconds: 800), () {
+          _cancelTimers();
+          _matchmakingPhase = MatchmakingPhase.idle;
+          notifyListeners();
+          onReadyToLaunch();
+        });
+      });
+    });
+  }
+
+  /// Cancelamento de busca de partida pelo usuário.
+  void cancelMatchmaking() {
+    if (_matchmakingPhase == MatchmakingPhase.idle) return;
+    _cancelTimers();
+    _matchmakingPhase = MatchmakingPhase.idle;
+    _matchmakingElapsedSeconds = 0;
+    notifyListeners();
+  }
+
+  /// Cria uma nova sala dedicada e ingressa o usuário imediatamente na Waiting Room como Host.
+  PublicRoom createRoom({bool? is2v2, String? customCode}) {
+    final use2v2 = is2v2 ?? _is2v2;
+    final maxSlots = use2v2 ? 4 : 2;
+    final code = customCode?.trim().isNotEmpty == true ? customCode!.trim() : _generatedRoomCode;
+    final hostName = _partyMembers.isNotEmpty
+        ? _partyMembers.first.replaceAll(' (Host)', '')
+        : 'Você';
+
+    final newRoom = PublicRoom(
+      code: code,
+      host: hostName,
+      mode: use2v2 ? '2v2 Duplas' : '1v1 Duelo',
+      players: 1,
+      maxPlayers: maxSlots,
+      ping: 15,
+      playerNames: [hostName],
+    );
+
+    // Adiciona ao topo das salas ativas
+    _publicRooms.insert(0, newRoom);
+    _activeWaitingRoom = newRoom;
+    _regenerateRoomCodeInternal();
+    notifyListeners();
+    return newRoom;
+  }
+
+  /// Conecta o usuário a uma sala pública existente (se houver vagas disponíveis).
+  /// Regra: Se a sala estiver cheia (players >= maxPlayers), recusa a conexão (retorna false).
+  bool joinRoom(PublicRoom room) {
+    if (room.isFull) {
+      return false;
+    }
+
+    final userName = _partyMembers.isNotEmpty
+        ? _partyMembers.first.replaceAll(' (Host)', '')
+        : 'Operador_Convidado';
+
+    final updatedPlayerNames = List<String>.from(room.playerNames);
+    if (!updatedPlayerNames.contains(userName)) {
+      updatedPlayerNames.add(userName);
+    }
+
+    final updatedRoom = room.copyWith(
+      players: updatedPlayerNames.length,
+      playerNames: updatedPlayerNames,
+    );
+
+    // Atualiza a lista de salas públicas
+    final index = _publicRooms.indexWhere((r) => r.code == room.code);
+    if (index != -1) {
+      _publicRooms[index] = updatedRoom;
+    }
+
+    _activeWaitingRoom = updatedRoom;
+    notifyListeners();
+    return true;
+  }
+
+  /// Conecta a uma sala através de código alfanumérico digitado.
+  bool joinRoomByCode(String code) {
+    final clean = sanitizeAndValidateRoomCode(code);
+    if (clean == null) return false;
+
+    final found = _publicRooms.where((r) => r.code.toUpperCase() == clean.toUpperCase()).firstOrNull;
+    if (found != null) {
+      return joinRoom(found);
+    }
+
+    // Se o código for válido mas a sala não existir no mock local, cria ou conecta com slots
+    final is2v2Mode = _is2v2;
+    final virtualRoom = PublicRoom(
+      code: clean,
+      host: 'Operador_Remoto',
+      mode: is2v2Mode ? '2v2 Duplas' : '1v1 Duelo',
+      players: 1,
+      maxPlayers: is2v2Mode ? 4 : 2,
+      ping: 28,
+      playerNames: ['Operador_Remoto'],
+    );
+    _publicRooms.insert(0, virtualRoom);
+    return joinRoom(virtualRoom);
+  }
+
+  /// Sai da Waiting Room atual e retorna ao navegador de salas do Lobby.
+  void leaveWaitingRoom() {
+    _activeWaitingRoom = null;
+    notifyListeners();
+  }
+
+  /// Simula a entrada de outro jogador na Waiting Room ativa (útil para testes de UI).
+  bool simulateJoinSlot() {
+    final current = _activeWaitingRoom;
+    if (current == null || current.isFull) return false;
+
+    final botNum = Random().nextInt(899) + 100;
+    final newMember = 'CyberOperador_$botNum';
+    final updatedList = List<String>.from(current.playerNames)..add(newMember);
+
+    final updatedRoom = current.copyWith(
+      players: updatedList.length,
+      playerNames: updatedList,
+    );
+
+    final idx = _publicRooms.indexWhere((r) => r.code == current.code);
+    if (idx != -1) {
+      _publicRooms[idx] = updatedRoom;
+    }
+
+    _activeWaitingRoom = updatedRoom;
+    notifyListeners();
+    return true;
+  }
+
+  /// Atualiza a lista de salas e simula atualização de pings em tempo real.
+  void refreshPublicRooms() {
+    final rand = Random();
+    _publicRooms = _publicRooms.map((r) {
+      final variation = rand.nextInt(7) - 3;
+      final newPing = (r.ping + variation).clamp(10, 180);
+      return r.copyWith(ping: newPing);
+    }).toList();
+    notifyListeners();
+  }
+
+  void _cancelTimers() {
+    _matchmakingTicker?.cancel();
+    _matchmakingTicker = null;
+    _matchmakingTransitionTimer?.cancel();
+    _matchmakingTransitionTimer = null;
+  }
+
+  @override
+  void dispose() {
+    _cancelTimers();
+    super.dispose();
+  }
+}

@@ -28,11 +28,11 @@ class NodeSelectionSheet extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.zero,
         border: Border.all(color: AppColors.borderGlow, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.7),
+            color: Colors.black.withValues(alpha: 0.7),
             blurRadius: 20,
             offset: const Offset(0, -6),
           ),
@@ -54,7 +54,7 @@ class NodeSelectionSheet extends StatelessWidget {
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: AppColors.cardSurface,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.zero,
                         border: Border.all(color: AppColors.blueTeam),
                       ),
                       child: const Icon(Icons.grid_on_rounded, color: AppColors.blueTeam, size: 20),
@@ -82,7 +82,7 @@ class NodeSelectionSheet extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: AppColors.cardSurface,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.zero,
                     border: Border.all(color: AppColors.cpuClock),
                   ),
                   child: Row(
@@ -131,7 +131,7 @@ class NodeSelectionSheet extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.cardSurface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.zero,
         border: Border.all(color: node.nodeColor, width: 1.5),
         boxShadow: AppColors.neonGlow(node.nodeColor, blur: 8),
       ),
@@ -184,6 +184,7 @@ class NodeSelectionSheet extends StatelessWidget {
                 backgroundColor: AppColors.surface,
                 foregroundColor: AppColors.redTeam,
                 side: const BorderSide(color: AppColors.redTeam),
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
               ),
               onPressed: () {
                 Navigator.pop(context);
@@ -203,16 +204,16 @@ class NodeSelectionSheet extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: AppColors.cardSurface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.zero,
         border: Border.all(
-          color: canAfford ? bp.nodeColor.withOpacity(0.7) : AppColors.border,
+          color: canAfford ? bp.nodeColor.withValues(alpha: 0.7) : AppColors.border,
           width: canAfford ? 1.5 : 1.0,
         ),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.zero,
           onTap: canAfford
               ? () {
                   Navigator.pop(context);
@@ -231,8 +232,8 @@ class NodeSelectionSheet extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: bp.nodeColor.withOpacity(canAfford ? 0.15 : 0.05),
-                    borderRadius: BorderRadius.circular(10),
+                    color: bp.nodeColor.withValues(alpha: canAfford ? 0.15 : 0.05),
+                    borderRadius: BorderRadius.zero,
                     border: Border.all(
                       color: canAfford ? bp.nodeColor : AppColors.textMuted,
                     ),
@@ -264,7 +265,7 @@ class NodeSelectionSheet extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: AppColors.background,
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.zero,
                               border: Border.all(
                                 color: canAfford ? AppColors.cpuClock : AppColors.textMuted,
                               ),

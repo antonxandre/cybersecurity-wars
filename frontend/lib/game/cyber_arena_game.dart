@@ -2,32 +2,59 @@ import 'dart:async';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import '../core/rules/game_rule_engine.dart';
 import '../core/theme/app_colors.dart';
 import '../features/battle/domain/models/bastion_node.dart';
 import '../features/battle/domain/models/game_card.dart';
 import '../features/battle/domain/models/match_state.dart';
+import '../features/battle/domain/models/team_player_model.dart';
+import '../features/battle/domain/models/tactical_unit_info.dart';
 import '../features/battle/domain/services/wave_spawner_service.dart';
 import '../features/battle/presentation/viewmodels/battle_view_model.dart';
+import 'components/board_quadrant_sector_component.dart';
 import 'components/data_packet_component.dart';
 import 'components/laser_beam_effect.dart';
 import 'components/mainframe_component.dart';
-import 'components/network_grid_component.dart';
+import 'components/middle_transit_zone_component.dart';
 import 'components/panoramic_background_component.dart';
 
-/// Instância do FlameGame responsável pelo canvas 2D panorâmico (2 campos + túneis centrais),
-/// simulação física e combate em tempo real estilo Legion TD.
+/// Instância do FlameGame responsável pelo canvas 2D do Tabuleiro Top-Down 4v4,
+/// com 4 setores para cada time, Mainframe Central e simulação física de combate em tempo real.
 class CyberArenaGame extends FlameGame with PanDetector, ScrollDetector {
   final BattleViewModel viewModel;
 
-  /// Callback invocado quando o jogador toca em uma célula da grade tática
+  /// Callback invocado quando o jogador toca em uma célula da grade tática local (J1)
   void Function(int gridX, int gridY)? onGridCellSelected;
 
-  late final NetworkGridComponent _blueGrid;
-  late final NetworkGridComponent _redGrid;
+  /// Callback invocado quando uma unidade tática (Mainframe, Bastião, Malware) é selecionada
+  void Function(TacticalUnitInfo unitInfo, Vector2 worldPosition)? onTacticalUnitSelected;
+
+  /// Callback invocado quando a câmera é movimentada
+  VoidCallback? onCameraMoved;
+
+  // Contagem de unidades que vazaram (leaks) da grade para a arena central
+  int totalLeaks = 0;
+
+  // 4 Setores do Time Aliado (Blue Team)
+  late final BoardQuadrantSectorComponent _sectorAllyTL; // J1 - Jogador 1 (Local)
+  late final BoardQuadrantSectorComponent _sectorAllyBL; // J2 - Jogador 2
+  late final BoardQuadrantSectorComponent _sectorAllyTR; // J3 - Jogador 3
+  late final BoardQuadrantSectorComponent _sectorAllyBR; // J4 - Jogador 4
+
+  // 4 Setores do Time Adversário (Red Team - Ocultos por Fog of War)
+  late final BoardQuadrantSectorComponent _sectorRivalTL;
+  late final BoardQuadrantSectorComponent _sectorRivalBL;
+  late final BoardQuadrantSectorComponent _sectorRivalTR;
+  late final BoardQuadrantSectorComponent _sectorRivalBR;
+
+  // Mainframes Centrais
   late final MainframeComponent _blueMainframe;
   late final MainframeComponent _redMainframe;
 
-  final WaveSpawnerService _spawner = WaveSpawnerService();
+  final WaveSpawnerService _spawnerTL = WaveSpawnerService();
+  final WaveSpawnerService _spawnerBL = WaveSpawnerService();
+  final WaveSpawnerService _spawnerTR = WaveSpawnerService();
+  final WaveSpawnerService _spawnerBR = WaveSpawnerService();
   final Map<String, double> _nodeAttackTimers = {};
 
   MatchPhase? _lastPhase;
@@ -45,63 +72,190 @@ class CyberArenaGame extends FlameGame with PanDetector, ScrollDetector {
     // 1. Fundo Panorâmico com os dois campos e túneis de fibra ótica
     world.add(PanoramicBackgroundComponent());
 
-    // 2. Campo do Time Aliado (Blue Team - Esquerda)
-    const gridWidth = 360.0;
-    const gridHeight = 420.0;
-    final blueCenter = Vector2(-440, 0);
+    final state = viewModel.state.value;
+    final bluePlayers = state.allyPlayers.isNotEmpty ? state.allyPlayers : TeamPlayerModel.initialBlueTeam();
+    final redPlayers = state.opponentPlayers.isNotEmpty ? state.opponentPlayers : TeamPlayerModel.initialRedTeam();
 
-    _blueGrid = NetworkGridComponent(
-      position: Vector2(blueCenter.x - (gridWidth / 2), blueCenter.y - (gridHeight / 2) - 30),
-      size: Vector2(gridWidth, gridHeight),
+    const sectorWidth = 350.0;
+    const sectorHeight = 500.0;
+    final sectorSize = Vector2(sectorWidth, sectorHeight);
+
+    // 2. Setores do Time Aliado (Blue Team - Esquerda, distanciados a 300px do Mainframe em X e Y)
+    // Blue Mainframe em (-440, 0). Distância de 300px:
+    // Eixo X: Coluna Esquerda termina em x = -740; Coluna Direita inicia em x = -140
+    // Eixo Y: Top termina em y = -300; Bottom inicia em y = 300
+    // J1: Top-Left (Jogador Local)
+    _sectorAllyTL = BoardQuadrantSectorComponent(
+      position: Vector2(-1090, -800),
+      size: sectorSize,
+      player: bluePlayers[0],
+      isLocalPlayer: true,
       getNodes: () => viewModel.state.value.nodes,
       getMatchPhase: () => viewModel.state.value.phase,
       onCellTapped: (col, row) {
         onGridCellSelected?.call(col, row);
       },
     );
-    world.add(_blueGrid);
+    world.add(_sectorAllyTL);
 
-    // Mainframe Central do Time Aliado (posicionado atrás do grid de defesa)
+    // J2: Bottom-Left (Jogador 2)
+    _sectorAllyBL = BoardQuadrantSectorComponent(
+      position: Vector2(-1090, 300),
+      size: sectorSize,
+      player: bluePlayers.length > 1 ? bluePlayers[1] : bluePlayers[0],
+      isLocalPlayer: false,
+      getNodes: () => bluePlayers.length > 1 ? bluePlayers[1].nodes : const {},
+      getMatchPhase: () => viewModel.state.value.phase,
+    );
+    world.add(_sectorAllyBL);
+
+    // J3: Top-Right (Jogador 3)
+    _sectorAllyTR = BoardQuadrantSectorComponent(
+      position: Vector2(-140, -800),
+      size: sectorSize,
+      player: bluePlayers.length > 2 ? bluePlayers[2] : bluePlayers[0],
+      isLocalPlayer: false,
+      getNodes: () => bluePlayers.length > 2 ? bluePlayers[2].nodes : const {},
+      getMatchPhase: () => viewModel.state.value.phase,
+    );
+    world.add(_sectorAllyTR);
+
+    // J4: Bottom-Right (Jogador 4)
+    _sectorAllyBR = BoardQuadrantSectorComponent(
+      position: Vector2(-140, 300),
+      size: sectorSize,
+      player: bluePlayers.length > 3 ? bluePlayers[3] : bluePlayers[0],
+      isLocalPlayer: false,
+      getNodes: () => bluePlayers.length > 3 ? bluePlayers[3].nodes : const {},
+      getMatchPhase: () => viewModel.state.value.phase,
+    );
+    world.add(_sectorAllyBR);
+
+    // Mainframe Central do Time Aliado (no centro dos 4 quadrantes aliados: x = -440, y = 0)
     _blueMainframe = MainframeComponent(
       teamId: 'team_blue',
-      position: Vector2(blueCenter.x, blueCenter.y + (gridHeight / 2) + 40),
+      position: Vector2(-440, 0),
+      size: Vector2(100, 70),
       getModel: () => viewModel.state.value.mainframeBlue,
       getEnemyPackets: () => world.children
           .whereType<DataPacketComponent>()
           .where((p) => p.origin == PacketOrigin.redExploit && !p.isDead)
           .toList(),
       onDamaged: (dmg) => viewModel.onMainframeDamaged('team_blue', dmg),
+      onTapped: (comp) {
+        final info = TacticalUnitInfo.fromMainframe(
+          mainframe: comp.model,
+          isBlue: true,
+        );
+        onTacticalUnitSelected?.call(info, comp.position);
+      },
     );
     world.add(_blueMainframe);
 
-    // 3. Campo do Time Adversário (Red Team - Direita)
-    final redCenter = Vector2(440, 0);
-
-    _redGrid = NetworkGridComponent(
-      position: Vector2(redCenter.x - (gridWidth / 2), redCenter.y - (gridHeight / 2) - 30),
-      size: Vector2(gridWidth, gridHeight),
+    // 3. Setores do Time Adversário (Red Team - Direita, distanciados a 300px do Mainframe Rival)
+    // Red Mainframe em (1240, 0). Distância de 300px:
+    // Eixo X: Coluna Esquerda termina em x = 940; Coluna Direita inicia em x = 1540
+    // Eixo Y: Top termina em y = -300; Bottom inicia em y = 300
+    _sectorRivalTL = BoardQuadrantSectorComponent(
+      position: Vector2(590, -800),
+      size: sectorSize,
+      player: redPlayers[0],
+      isLocalPlayer: false,
+      isFogOfWarActive: true,
       getNodes: () => viewModel.state.value.opponentNodes,
       getMatchPhase: () => viewModel.state.value.phase,
-      onCellTapped: (col, row) {},
     );
-    world.add(_redGrid);
+    world.add(_sectorRivalTL);
 
-    // Mainframe Central do Time Adversário
+    _sectorRivalBL = BoardQuadrantSectorComponent(
+      position: Vector2(590, 300),
+      size: sectorSize,
+      player: redPlayers.length > 1 ? redPlayers[1] : redPlayers[0],
+      isLocalPlayer: false,
+      isFogOfWarActive: true,
+      getNodes: () => const {},
+      getMatchPhase: () => viewModel.state.value.phase,
+    );
+    world.add(_sectorRivalBL);
+
+    _sectorRivalTR = BoardQuadrantSectorComponent(
+      position: Vector2(1540, -800),
+      size: sectorSize,
+      player: redPlayers.length > 2 ? redPlayers[2] : redPlayers[0],
+      isLocalPlayer: false,
+      isFogOfWarActive: true,
+      getNodes: () => const {},
+      getMatchPhase: () => viewModel.state.value.phase,
+    );
+    world.add(_sectorRivalTR);
+
+    _sectorRivalBR = BoardQuadrantSectorComponent(
+      position: Vector2(1540, 300),
+      size: sectorSize,
+      player: redPlayers.length > 3 ? redPlayers[3] : redPlayers[0],
+      isLocalPlayer: false,
+      isFogOfWarActive: true,
+      getNodes: () => const {},
+      getMatchPhase: () => viewModel.state.value.phase,
+    );
+    world.add(_sectorRivalBR);
+
+    // Mainframe Central do Time Adversário (Visível no centro do campo rival: x = 1240, y = 0)
     _redMainframe = MainframeComponent(
       teamId: 'team_red',
-      position: Vector2(redCenter.x, redCenter.y + (gridHeight / 2) + 40),
+      position: Vector2(1240, 0),
+      size: Vector2(100, 70),
       getModel: () => viewModel.state.value.mainframeRed,
       getEnemyPackets: () => world.children
           .whereType<DataPacketComponent>()
           .where((p) => p.origin == PacketOrigin.blueDefense && !p.isDead)
           .toList(),
       onDamaged: (dmg) => viewModel.onMainframeDamaged('team_red', dmg),
+      onTapped: (comp) {
+        final info = TacticalUnitInfo.fromMainframe(
+          mainframe: comp.model,
+          isBlue: false,
+        );
+        onTacticalUnitSelected?.call(info, comp.position);
+      },
     );
     world.add(_redMainframe);
 
-    // 4. Configuração Inicial da Câmera Panorâmica (focada no grid aliado)
-    camera.viewfinder.position = Vector2(blueCenter.x, 20);
-    camera.viewfinder.zoom = 0.95;
+    // 4. Áreas Intermediárias (The Middle between players) com Waypoint e setas direcionais ao Mainframe
+    // Meio exatamente entre Jogador 1 e Jogador 2 (Time Aliado, coluna esquerda)
+    world.add(MiddleTransitZoneComponent(
+      position: Vector2(-1090, -25),
+      size: Vector2(sectorWidth, 50),
+      arrowDirection: TransitZoneDirection.toRight,
+      isBlueTeam: true,
+    ));
+
+    // Meio exatamente entre Jogador 3 e Jogador 4 (Time Aliado, coluna direita)
+    world.add(MiddleTransitZoneComponent(
+      position: Vector2(-140, -25),
+      size: Vector2(sectorWidth, 50),
+      arrowDirection: TransitZoneDirection.toLeft,
+      isBlueTeam: true,
+    ));
+
+    // Meio entre Jogador 1 e Jogador 2 (Time Rival, coluna esquerda)
+    world.add(MiddleTransitZoneComponent(
+      position: Vector2(590, -25),
+      size: Vector2(sectorWidth, 50),
+      arrowDirection: TransitZoneDirection.toRight,
+      isBlueTeam: false,
+    ));
+
+    // Meio entre Jogador 3 e Jogador 4 (Time Rival, coluna direita)
+    world.add(MiddleTransitZoneComponent(
+      position: Vector2(1540, -25),
+      size: Vector2(sectorWidth, 50),
+      arrowDirection: TransitZoneDirection.toLeft,
+      isBlueTeam: false,
+    ));
+
+    // 5. Configuração Inicial da Câmera: Visão Geral Tática Padrão do Tabuleiro Aliado
+    focusOnOverview();
 
     // Ouve despachos de cartas emitidos pelo ViewModel
     _dispatchSubscription = viewModel.flameDispatches.listen((event) {
@@ -109,54 +263,114 @@ class CyberArenaGame extends FlameGame with PanDetector, ScrollDetector {
     });
   }
 
-
   // --- Controles de Navegação Panorâmica por Gestos (Pan e Zoom) ---
 
   @override
   void onPanUpdate(DragUpdateInfo info) {
     camera.viewfinder.position -= info.delta.global / camera.viewfinder.zoom;
+    onCameraMoved?.call();
   }
 
   @override
   void onScroll(PointerScrollInfo info) {
     final zoomDelta = info.scrollDelta.global.y * 0.001;
-    camera.viewfinder.zoom = (camera.viewfinder.zoom - zoomDelta).clamp(0.45, 1.6);
+    camera.viewfinder.zoom = (camera.viewfinder.zoom - zoomDelta).clamp(0.40, 1.8);
+    onCameraMoved?.call();
   }
 
-  // --- Âncoras Rápidas de Câmera para o HUD ---
+  // --- Âncoras Rápidas de Câmera Tática (RTS Style) ---
 
-  void focusOnMyGrid() {
-    camera.viewfinder.position = Vector2(-440, 20);
-    camera.viewfinder.zoom = 0.95;
-  }
-
-  void focusOnOpponent() {
-    camera.viewfinder.position = Vector2(440, 20);
-    camera.viewfinder.zoom = 0.95;
-  }
-
-  void focusOnMainframe(bool isBlue) {
-    camera.viewfinder.position = isBlue ? Vector2(-440, 250) : Vector2(440, 250);
-    camera.viewfinder.zoom = 1.2;
-  }
-
+  /// Visão Tática Geral Padrão: exibe os 4 quadrantes aliados e o Mainframe central simultaneamente
   void focusOnOverview() {
-    camera.viewfinder.position = Vector2(0, 30);
-    camera.viewfinder.zoom = 0.52;
+    camera.viewfinder.position = Vector2(-440, 0);
+    camera.viewfinder.zoom = 0.45;
+    onCameraMoved?.call();
+  }
+
+  /// Foco direto no setor 7x10 do jogador local (Top-Left)
+  void focusOnMyGrid() {
+    focusOnSector(BoardQuadrant.topLeft);
+  }
+
+  /// Foca a câmera em um quadrante específico com zoom para alocação/inspeção de unidades
+  void focusOnSector(BoardQuadrant quadrant) {
+    switch (quadrant) {
+      case BoardQuadrant.topLeft:
+        camera.viewfinder.position = Vector2(-915, -550);
+        break;
+      case BoardQuadrant.bottomLeft:
+        camera.viewfinder.position = Vector2(-915, 550);
+        break;
+      case BoardQuadrant.topRight:
+        camera.viewfinder.position = Vector2(35, -550);
+        break;
+      case BoardQuadrant.bottomRight:
+        camera.viewfinder.position = Vector2(35, 550);
+        break;
+    }
+    camera.viewfinder.zoom = 1.05;
+    onCameraMoved?.call();
+  }
+
+  /// Visão Global Completa de ambos os campos (Aliado + Neutral Zone + Rival)
+  void focusOnFullBattlefield() {
+    camera.viewfinder.position = Vector2(400, 0);
+    camera.viewfinder.zoom = 0.25;
+    onCameraMoved?.call();
+  }
+
+  /// Foco no campo adversário (Mainframe central visível e bases sob Fog of War)
+  void focusOnOpponent() {
+    camera.viewfinder.position = Vector2(1240, 0);
+    camera.viewfinder.zoom = 0.45;
+    onCameraMoved?.call();
+  }
+
+  /// Foco centrado no Mainframe de uma das equipes
+  void focusOnMainframe(bool isBlue) {
+    camera.viewfinder.position = isBlue ? Vector2(-440, 0) : Vector2(1240, 0);
+    camera.viewfinder.zoom = 1.35;
+    onCameraMoved?.call();
   }
 
   void clearGridSelection() {
-    _blueGrid.clearSelection();
+    _sectorAllyTL.clearSelection();
+  }
+
+  /// Retorna as coordenadas de projeção no canvas/tela do Flutter para qualquer posição de mundo
+  Vector2 getWorldScreenPosition(Vector2 worldPos) {
+    return camera.localToGlobal(worldPos);
+  }
+
+  /// Retorna a posição em tela do Mainframe
+  Vector2 getMainframeScreenPosition(bool isBlue) {
+    final pos = isBlue ? _blueMainframe.position : _redMainframe.position;
+    return camera.localToGlobal(pos);
+  }
+
+  /// Retorna as coordenadas de mundo para uma célula do grid local (J1)
+  Vector2 getCellWorldPosition(int gridX, int gridY) {
+    final cellWidth = _sectorAllyTL.size.x / BoardQuadrantSectorComponent.columns;
+    final cellHeight = _sectorAllyTL.size.y / BoardQuadrantSectorComponent.rows;
+    final localPos = Vector2(
+      (gridX + 0.5) * cellWidth,
+      (gridY + 0.5) * cellHeight,
+    );
+    return _sectorAllyTL.position + localPos;
+  }
+
+  /// Retorna as coordenadas de projeção no canvas/tela do Flutter para uma célula do grid local (J1)
+  Vector2 getCellScreenPosition(int gridX, int gridY) {
+    return camera.localToGlobal(getCellWorldPosition(gridX, gridY));
   }
 
   void _spawnCardPackets(GameCard card, int lane) {
-    final cellWidth = _blueGrid.size.x / _blueGrid.columns;
-    final targetX = _blueGrid.position.x + (lane == 0 ? cellWidth * 1.0 : cellWidth * 3.0);
-    final startY = _blueGrid.position.y + _blueGrid.size.y - 20;
+    final cellWidth = _sectorAllyTL.size.x / BoardQuadrantSectorComponent.columns;
+    final targetX = _sectorAllyTL.position.x + (lane == 0 ? cellWidth * 1.5 : cellWidth * 5.5);
+    final startY = _sectorAllyTL.position.y + _sectorAllyTL.size.y - 10;
 
-    final origin = card.type == CardType.exploit || card.type == CardType.payload
-        ? PacketOrigin.redExploit
-        : PacketOrigin.blueDefense;
+    // Todas as cartas lançadas pelo jogador no tabuleiro aliado atuam como defesas do time azul
+    const origin = PacketOrigin.blueDefense;
 
     for (int i = 0; i < 3; i++) {
       final packet = DataPacketComponent(
@@ -167,6 +381,8 @@ class CyberArenaGame extends FlameGame with PanDetector, ScrollDetector {
         speed: 170.0,
         damage: card.basePower / 3,
         maxHealth: 100.0,
+        assignedQuadrant: BoardQuadrant.topLeft,
+        teamId: 'team_blue',
       );
       _attachPacketCallbacks(packet);
       world.add(packet);
@@ -193,14 +409,34 @@ class CyberArenaGame extends FlameGame with PanDetector, ScrollDetector {
         viewModel.onPacketNeutralized();
       }
     };
+
+    packet.onTapped = (p) {
+      final info = TacticalUnitInfo.fromDataPacket(
+        id: 'packet_${p.hashCode}',
+        subtypeName: p.subtypeDisplayName,
+        originName: p.origin.name,
+        currentHealth: p.currentHealth,
+        maxHealth: p.maxHealth,
+        damage: p.damage,
+        speed: p.speed,
+        isLeaked: p.isLeaked,
+        isAlly: p.origin == PacketOrigin.blueDefense,
+        movementStateDesc: p.movementStateDescription,
+      );
+      onTacticalUnitSelected?.call(info, p.position);
+    };
   }
 
   void resetGame() {
-    _spawner.reset();
+    _spawnerTL.reset();
+    _spawnerBL.reset();
+    _spawnerTR.reset();
+    _spawnerBR.reset();
+    totalLeaks = 0;
     world.children.whereType<DataPacketComponent>().forEach((p) => p.removeFromParent());
     _nodeAttackTimers.clear();
     clearGridSelection();
-    focusOnMyGrid();
+    focusOnOverview();
   }
 
   @override
@@ -211,7 +447,10 @@ class CyberArenaGame extends FlameGame with PanDetector, ScrollDetector {
 
     if (_lastPhase != state.phase) {
       if (state.phase == MatchPhase.battle) {
-        _spawner.startWave(state.currentWave);
+        _spawnerTL.startWave(state.currentWave);
+        _spawnerBL.startWave(state.currentWave);
+        _spawnerTR.startWave(state.currentWave);
+        _spawnerBR.startWave(state.currentWave);
       } else if (state.phase == MatchPhase.preparation) {
         world.children.whereType<DataPacketComponent>().forEach((p) => p.removeFromParent());
       }
@@ -220,18 +459,21 @@ class CyberArenaGame extends FlameGame with PanDetector, ScrollDetector {
 
     if (state.phase != MatchPhase.battle) return;
 
-    final cellWidth = _blueGrid.size.x / _blueGrid.columns;
-    final lane1X = _blueGrid.position.x + (cellWidth * 1.0);
-    final lane2X = _blueGrid.position.x + (cellWidth * 3.0);
-    final spawnY = _blueGrid.position.y + 10;
+    final cellWidth = _sectorAllyTL.size.x / BoardQuadrantSectorComponent.columns;
+    final lane1Offset = cellWidth * 1.5;
+    final lane2Offset = cellWidth * 5.5;
 
-    // 1. Spawner de Ondas Inimigas na Rota
-    _spawner.update(
+    // 1. Spawner de Ondas Inimigas para os 4 Jogadores Aliados
+    // J1 (Top-Left): Zona de spawn no topo (y < -800), move-se para BAIXO (0, 1)
+    _spawnerTL.update(
       dt: dt,
-      lane1X: lane1X,
-      lane2X: lane2X,
-      startY: spawnY,
+      lane1X: _sectorAllyTL.position.x + lane1Offset,
+      lane2X: _sectorAllyTL.position.x + lane2Offset,
+      startY: _sectorAllyTL.position.y - 14,
+      direction: Vector2(0, 1),
       onSpawnPacket: (packet) {
+        packet.assignedQuadrant = BoardQuadrant.topLeft;
+        packet.teamId = 'team_blue';
         _attachPacketCallbacks(packet);
         world.add(packet);
       },
@@ -240,62 +482,294 @@ class CyberArenaGame extends FlameGame with PanDetector, ScrollDetector {
       },
     );
 
-    // 2. Loop de Combate dos Bastiões Aliados
-    _updateBastionCombat(dt, _blueGrid, state.nodes);
+    // J2 (Bottom-Left): Zona de spawn na região inferior após a grade (bottom), move-se para CIMA (0, -1)
+    _spawnerBL.update(
+      dt: dt,
+      lane1X: _sectorAllyBL.position.x + lane1Offset,
+      lane2X: _sectorAllyBL.position.x + lane2Offset,
+      startY: _sectorAllyBL.position.y + _sectorAllyBL.size.y + 14,
+      direction: Vector2(0, -1),
+      onSpawnPacket: (packet) {
+        packet.assignedQuadrant = BoardQuadrant.bottomLeft;
+        packet.teamId = 'team_blue';
+        _attachPacketCallbacks(packet);
+        world.add(packet);
+      },
+      onWaveCompleted: (_) {},
+    );
 
-    // 3. Colisão Frontal entre Pacotes
+    // J3 (Top-Right): Zona como o player 1 no topo, move-se para BAIXO (0, 1)
+    _spawnerTR.update(
+      dt: dt,
+      lane1X: _sectorAllyTR.position.x + lane1Offset,
+      lane2X: _sectorAllyTR.position.x + lane2Offset,
+      startY: _sectorAllyTR.position.y - 14,
+      direction: Vector2(0, 1),
+      onSpawnPacket: (packet) {
+        packet.assignedQuadrant = BoardQuadrant.topRight;
+        packet.teamId = 'team_blue';
+        _attachPacketCallbacks(packet);
+        world.add(packet);
+      },
+      onWaveCompleted: (_) {},
+    );
+
+    // J4 (Bottom-Right): Zona como o player 2 na região inferior (bottom), move-se para CIMA (0, -1)
+    _spawnerBR.update(
+      dt: dt,
+      lane1X: _sectorAllyBR.position.x + lane1Offset,
+      lane2X: _sectorAllyBR.position.x + lane2Offset,
+      startY: _sectorAllyBR.position.y + _sectorAllyBR.size.y + 14,
+      direction: Vector2(0, -1),
+      onSpawnPacket: (packet) {
+        packet.assignedQuadrant = BoardQuadrant.bottomRight;
+        packet.teamId = 'team_blue';
+        _attachPacketCallbacks(packet);
+        world.add(packet);
+      },
+      onWaveCompleted: (_) {},
+    );
+
+    // 2. Trajetória de Leaks: Malwares que ultrapassam o grid avançam pelo meio até o Mainframe (Movimento em L)
+    _updateLeakedPackets();
+
+    // 3. Loop de Combate dos Bastiões Aliados (em todos os setores)
+    _updateBastionCombat(dt);
+
+    // 4. Colisão Frontal entre Pacotes
     _updatePacketCollisions();
   }
 
-  void _updateBastionCombat(double dt, NetworkGridComponent grid, Map<String, BastionNode> nodes) {
-    final cellWidth = grid.size.x / grid.columns;
-    final cellHeight = grid.size.y / grid.rows;
+  BoardQuadrantSectorComponent _getSectorForQuadrant(BoardQuadrant quadrant, {bool isBlue = true}) {
+    if (isBlue) {
+      switch (quadrant) {
+        case BoardQuadrant.topLeft:
+          return _sectorAllyTL;
+        case BoardQuadrant.bottomLeft:
+          return _sectorAllyBL;
+        case BoardQuadrant.topRight:
+          return _sectorAllyTR;
+        case BoardQuadrant.bottomRight:
+          return _sectorAllyBR;
+      }
+    } else {
+      switch (quadrant) {
+        case BoardQuadrant.topLeft:
+          return _sectorRivalTL;
+        case BoardQuadrant.bottomLeft:
+          return _sectorRivalBL;
+        case BoardQuadrant.topRight:
+          return _sectorRivalTR;
+        case BoardQuadrant.bottomRight:
+          return _sectorRivalBR;
+      }
+    }
+  }
+
+  /// Ponto de interseção entre a rota de fuga do jogador e o jogador adjacente na direção do Mainframe
+  Vector2 getIntersectionWithPlayer(BoardQuadrant playerQuad, BoardQuadrant adjacentQuad, {bool isBlue = true}) {
+    if (isBlue) {
+      // Jogadores da coluna esquerda (J1 e J2) convergem para a interseção (-590, 0)
+      if ((playerQuad == BoardQuadrant.topLeft && adjacentQuad == BoardQuadrant.bottomLeft) ||
+          (playerQuad == BoardQuadrant.bottomLeft && adjacentQuad == BoardQuadrant.topLeft)) {
+        return Vector2(-590, 0);
+      }
+      // Jogadores da coluna direita (J3 e J4) convergem para a interseção (-290, 0)
+      else if ((playerQuad == BoardQuadrant.topRight && adjacentQuad == BoardQuadrant.bottomRight) ||
+               (playerQuad == BoardQuadrant.bottomRight && adjacentQuad == BoardQuadrant.topRight)) {
+        return Vector2(-290, 0);
+      } else {
+        return Vector2(-440, 0);
+      }
+    } else {
+      if ((playerQuad == BoardQuadrant.topLeft && adjacentQuad == BoardQuadrant.bottomLeft) ||
+          (playerQuad == BoardQuadrant.bottomLeft && adjacentQuad == BoardQuadrant.topLeft)) {
+        return Vector2(1090, 0);
+      } else if ((playerQuad == BoardQuadrant.topRight && adjacentQuad == BoardQuadrant.bottomRight) ||
+                 (playerQuad == BoardQuadrant.bottomRight && adjacentQuad == BoardQuadrant.topRight)) {
+        return Vector2(1390, 0);
+      } else {
+        return Vector2(1240, 0);
+      }
+    }
+  }
+
+  void _updateLeakedPackets() {
+    final mainframePos = _blueMainframe.position;
+
+    final redPackets = world.children
+        .whereType<DataPacketComponent>()
+        .where((p) => p.origin == PacketOrigin.redExploit && !p.isDead)
+        .toList();
+
+    for (final packet in redPackets) {
+      packet.assignedQuadrant ??= _resolveQuadrantForPosition(packet.position);
+      final quad = packet.assignedQuadrant!;
+      final sector = _getSectorForQuadrant(quad, isBlue: true);
+      final isTopSector = quad == BoardQuadrant.topLeft || quad == BoardQuadrant.topRight;
+
+      // Limite de saída do quadrante do jogador
+      final zoneExitY = isTopSector ? (sector.position.y + sector.size.y) : sector.position.y;
+      final bool isOutPlayerZone = isTopSector
+          ? packet.position.y >= zoneExitY
+          : packet.position.y <= zoneExitY;
+
+      // leak = hp > 0 && isOutPlayerZone
+      final isLeak = GameRuleEngine.isUnitLeak(
+        currentHealth: packet.currentHealth,
+        isOutPlayerZone: isOutPlayerZone,
+      );
+
+      // PASSO 1: Unidade saiu da zona -> inicia leak e move-se pela linha tracejada até a parada (y = 0.0)
+      if (isLeak && packet.movementState == PacketMovementState.inPlayerLane) {
+        packet.isLeaked = true;
+        totalLeaks++;
+        viewModel.recordLeak(teamId: 'team_blue', quadrant: quad);
+
+        final middlePoint = Vector2(packet.basePosition.x, 0.0);
+        packet.startLeakToMiddle(middlePoint);
+        packet.direction = isTopSector ? Vector2(0, 1) : Vector2(0, -1);
+      }
+
+      // PASSO 2: Movendo-se pela linha tracejada até a parada (the middle between them em y = 0.0)
+      if (packet.movementState == PacketMovementState.headingToMiddle ||
+          packet.movementState == PacketMovementState.headingToIntersection) {
+        // Trava a direção estritamente vertical ao longo da linha tracejada da coluna
+        packet.direction = isTopSector ? Vector2(0, 1) : Vector2(0, -1);
+
+        // Verifica se alcançou a parada intermediária (y = 0.0)
+        final bool hasReachedParada = isTopSector
+            ? packet.basePosition.y >= 0.0
+            : packet.basePosition.y <= 0.0;
+
+        if (hasReachedParada) {
+          // Trava exatamente na parada (y = 0.0) e inicia rota ao Mainframe
+          packet.basePosition.y = 0.0;
+          packet.turnToMainframe(mainframePos);
+        }
+      }
+      // PASSO 3: Após chegar na parada -> move para o Mainframe ao longo da linha horizontal (y = 0.0)
+      else if (packet.movementState == PacketMovementState.headingToMainframe) {
+        // Trava no eixo y da espinha dorsal do barramento (y = 0.0) mantendo a oscilação vertical
+        packet.basePosition.y = mainframePos.y;
+
+        final distToMainframe = packet.position.distanceTo(mainframePos);
+
+        // Ao chegar a cerca de 100px de distância do mainframe, para e ataca
+        if (distToMainframe <= 100.0) {
+          packet.stopAndAttackMainframe(mainframePos);
+          packet.onAttackMainframe = (p) {
+            if (p.isDead) return;
+            viewModel.onMainframeDamaged('team_blue', p.damage * 0.4);
+            world.add(
+              LaserBeamEffect(
+                start: p.position.clone(),
+                end: mainframePos.clone(),
+                beamColor: AppColors.redTeam,
+                duration: 0.16,
+              ),
+            );
+          };
+        } else {
+          // Movimento horizontal estrito em direção ao Mainframe (-440, 0)
+          final toMainframeX = mainframePos.x - packet.basePosition.x;
+          packet.direction = Vector2(toMainframeX > 0 ? 1.0 : -1.0, 0.0);
+        }
+      }
+      // PASSO 4: Parado a ~100px atacando o Mainframe
+      else if (packet.movementState == PacketMovementState.attackingMainframe) {
+        packet.speed = 0.0;
+        final diff = mainframePos - packet.position;
+        if (diff.length > 0) {
+          packet.direction = diff.normalized();
+        }
+      }
+
+      // REDE DE SEGURANÇA (Anti-Bug "passando direto"):
+      // Nenhuma unidade que alcançou ou ultrapassou a parada (y = 0.0) pode continuar se movendo verticalmente
+      if (!packet.isDead && packet.movementState != PacketMovementState.attackingMainframe) {
+        if (isTopSector && packet.basePosition.y >= 0.0 && packet.movementState != PacketMovementState.headingToMainframe) {
+          packet.basePosition.y = 0.0;
+          packet.turnToMainframe(mainframePos);
+        } else if (!isTopSector && packet.basePosition.y <= 0.0 && packet.movementState != PacketMovementState.headingToMainframe) {
+          packet.basePosition.y = 0.0;
+          packet.turnToMainframe(mainframePos);
+        }
+      }
+    }
+  }
+
+  BoardQuadrant _resolveQuadrantForPosition(Vector2 pos) {
+    if (pos.x < -500) {
+      return pos.y < 0 ? BoardQuadrant.topLeft : BoardQuadrant.bottomLeft;
+    } else {
+      return pos.y < 0 ? BoardQuadrant.topRight : BoardQuadrant.bottomRight;
+    }
+  }
+
+  void _updateBastionCombat(double dt) {
+    final cellWidth = _sectorAllyTL.size.x / BoardQuadrantSectorComponent.columns;
+    final cellHeight = _sectorAllyTL.size.y / BoardQuadrantSectorComponent.rows;
 
     final activeEnemyPackets = world.children
         .whereType<DataPacketComponent>()
         .where((p) => p.origin == PacketOrigin.redExploit && !p.isDead)
         .toList();
 
-    for (final node in nodes.values) {
-      _nodeAttackTimers[node.id] = (_nodeAttackTimers[node.id] ?? 0.0) + dt;
+    if (activeEnemyPackets.isEmpty) return;
 
-      final cadence = node.type == BastionNodeType.idsSentinel
-          ? 0.45
-          : (node.type == BastionNodeType.firewall ? 0.8 : 0.65);
+    final state = viewModel.state.value;
+    final players = state.allyPlayers.isNotEmpty ? state.allyPlayers : TeamPlayerModel.initialBlueTeam();
 
-      if (_nodeAttackTimers[node.id]! < cadence) continue;
+    // Reúne todos os nós de cada quadrante com a posição do respectivo setor
+    final playerSectors = [
+      (player: players[0], sector: _sectorAllyTL, nodes: state.nodes),
+      if (players.length > 1) (player: players[1], sector: _sectorAllyBL, nodes: players[1].nodes),
+      if (players.length > 2) (player: players[2], sector: _sectorAllyTR, nodes: players[2].nodes),
+      if (players.length > 3) (player: players[3], sector: _sectorAllyBR, nodes: players[3].nodes),
+    ];
 
-      final nodeCenterX = grid.position.x + (node.gridX * cellWidth) + (cellWidth / 2);
-      final nodeCenterY = grid.position.y + (node.gridY * cellHeight) + (cellHeight / 2);
-      final nodePos = Vector2(nodeCenterX, nodeCenterY);
+    for (final ps in playerSectors) {
+      for (final node in ps.nodes.values) {
+        _nodeAttackTimers[node.id] = (_nodeAttackTimers[node.id] ?? 0.0) + dt;
 
-      DataPacketComponent? closestTarget;
-      double closestDistance = double.infinity;
+        final cadence = node.type == BastionNodeType.proxy
+            ? 0.5
+            : (node.type == BastionNodeType.ids ? 0.85 : 0.7);
 
-      for (final packet in activeEnemyPackets) {
-        final dist = nodePos.distanceTo(packet.position);
-        if (dist <= node.attackRange && dist < closestDistance) {
-          closestDistance = dist;
-          closestTarget = packet;
+        if (_nodeAttackTimers[node.id]! < cadence) continue;
+
+        final nodeCenterX = ps.sector.position.x + (node.gridX * cellWidth) + (cellWidth / 2);
+        final nodeCenterY = ps.sector.position.y + (node.gridY * cellHeight) + (cellHeight / 2);
+        final nodePos = Vector2(nodeCenterX, nodeCenterY);
+
+        DataPacketComponent? closestTarget;
+        double closestDistance = double.infinity;
+
+        for (final packet in activeEnemyPackets) {
+          final dist = nodePos.distanceTo(packet.position);
+          if (dist <= node.attackRange && dist < closestDistance) {
+            closestDistance = dist;
+            closestTarget = packet;
+          }
         }
-      }
 
-      if (closestTarget != null) {
-        world.add(
-          LaserBeamEffect(
-            start: nodePos,
-            end: closestTarget.position.clone(),
-            beamColor: node.nodeColor,
-          ),
-        );
+        if (closestTarget != null) {
+          world.add(
+            LaserBeamEffect(
+              start: nodePos,
+              end: closestTarget.position.clone(),
+              beamColor: node.nodeColor,
+            ),
+          );
 
-        final boostedDamage = node.attackDamage * viewModel.state.value.damageMultiplier;
-        closestTarget.takeDamage(boostedDamage);
-        _nodeAttackTimers[node.id] = 0.0;
+          final boostedDamage = node.attackDamage * state.damageMultiplier;
+          closestTarget.takeDamage(boostedDamage);
+          _nodeAttackTimers[node.id] = 0.0;
+        }
       }
     }
   }
-
   void _updatePacketCollisions() {
     final upwardPackets = world.children
         .whereType<DataPacketComponent>()
@@ -309,7 +783,9 @@ class CyberArenaGame extends FlameGame with PanDetector, ScrollDetector {
 
     for (final up in upwardPackets) {
       for (final down in downwardPackets) {
-        if (up.position.distanceTo(down.position) < 20.0) {
+        // Apenas pacotes de lados/origens opostas colidem (ex: Blue Defense vs Red Exploit)
+        // Pacotes da mesma equipe (ex: dois Red Exploits de J1 e J2) não colidem nem se destroem
+        if (up.origin != down.origin && up.position.distanceTo(down.position) < 20.0) {
           up.takeDamage(down.damage);
           down.takeDamage(up.damage);
         }

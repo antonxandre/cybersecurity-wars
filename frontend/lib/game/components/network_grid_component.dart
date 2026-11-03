@@ -28,8 +28,8 @@ class NetworkGridComponent extends PositionComponent with TapCallbacks {
     required this.getNodes,
     required this.getMatchPhase,
     required this.onCellTapped,
-    this.columns = 4,
-    this.rows = 6,
+    this.columns = 7,
+    this.rows = 10,
   }) : super(position: position, size: size);
 
   @override
@@ -37,17 +37,17 @@ class NetworkGridComponent extends PositionComponent with TapCallbacks {
     await super.onLoad();
 
     _gridLinePaint = Paint()
-      ..color = AppColors.border.withOpacity(0.4)
+      ..color = AppColors.border.withValues(alpha: 0.4)
       ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke;
 
     _lanePaint = Paint()
-      ..color = AppColors.blueTeam.withOpacity(0.10)
+      ..color = AppColors.blueTeam.withValues(alpha: 0.10)
       ..strokeWidth = 36.0
       ..style = PaintingStyle.stroke;
 
     _selectedCellPaint = Paint()
-      ..color = AppColors.blueTeam.withOpacity(0.25)
+      ..color = AppColors.blueTeam.withValues(alpha: 0.25)
       ..style = PaintingStyle.fill;
 
     _corePaint = Paint()
@@ -55,7 +55,7 @@ class NetworkGridComponent extends PositionComponent with TapCallbacks {
       ..style = PaintingStyle.fill;
 
     _coreGlowPaint = Paint()
-      ..color = AppColors.coreAi.withOpacity(0.5)
+      ..color = AppColors.coreAi.withValues(alpha: 0.5)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
   }
 
@@ -99,7 +99,7 @@ class NetworkGridComponent extends PositionComponent with TapCallbacks {
       canvas.drawLine(Offset(0, y), Offset(size.x, y), _gridLinePaint);
     }
 
-    // 4. Desenha o LLM Core na base do grid (Torre Rei / Cérebro da Cidadela)
+    // 4. Desenha o Mainframe na base do grid (Torre Rei / Cérebro da Cidadela)
     final coreCenter = Offset(size.x / 2, size.y - (cellHeight / 2));
     canvas.drawCircle(coreCenter, 24, _coreGlowPaint);
     canvas.drawCircle(coreCenter, 20, _corePaint);
@@ -116,10 +116,10 @@ class NetworkGridComponent extends PositionComponent with TapCallbacks {
       // Raio de alcance na fase de preparação ou se a célula estiver em foco
       if (isPrepPhase || (selectedGridX == node.gridX && selectedGridY == node.gridY)) {
         final rangePaint = Paint()
-          ..color = node.nodeColor.withOpacity(0.08)
+          ..color = node.nodeColor.withValues(alpha: 0.08)
           ..style = PaintingStyle.fill;
         final rangeBorder = Paint()
-          ..color = node.nodeColor.withOpacity(0.35)
+          ..color = node.nodeColor.withValues(alpha: 0.35)
           ..strokeWidth = 1.0
           ..style = PaintingStyle.stroke;
 
@@ -132,7 +132,7 @@ class NetworkGridComponent extends PositionComponent with TapCallbacks {
         ..color = node.nodeColor
         ..style = PaintingStyle.fill;
       final glowPaint = Paint()
-        ..color = node.nodeColor.withOpacity(0.4)
+        ..color = node.nodeColor.withValues(alpha: 0.4)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
 
       canvas.drawCircle(center, 18, glowPaint);
@@ -140,8 +140,8 @@ class NetworkGridComponent extends PositionComponent with TapCallbacks {
 
       // Barra de Integridade do Nó
       final integrityRatio = (node.currentIntegrity / node.maxIntegrity).clamp(0.0, 1.0);
-      final barWidth = 30.0;
-      final barHeight = 4.0;
+      const barWidth = 30.0;
+      const barHeight = 4.0;
       final barLeft = nodeCenterX - (barWidth / 2);
       final barTop = nodeCenterY - 24;
 

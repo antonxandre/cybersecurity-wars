@@ -17,12 +17,10 @@ class AppTheme {
         primary: AppColors.blueTeam,
         secondary: AppColors.redTeam,
         surface: AppColors.surface,
-        background: AppColors.background,
         error: AppColors.redTeam,
         onPrimary: AppColors.background,
         onSecondary: AppColors.textPrimary,
         onSurface: AppColors.textPrimary,
-        onBackground: AppColors.textPrimary,
       ),
       textTheme: TextTheme(
         displayLarge: AppTypography.displayLarge,

@@ -32,20 +32,23 @@ class MainframeModel {
 
   // --- Atributos Derivados de Hardware ---
 
-  /// Capacidade total de armazenamento de dados / HP Máximo do Mainframe
-  double get maxHp => 1000.0 + ((diskLevel - 1) * 400.0);
+  /// Capacidade total de integridade do Mainframe (substitui maxHp)
+  double get totalIntegrity => 1000.0 + ((diskLevel - 1) * 400.0);
 
-  /// Dano por segundo (DPS) de feixe laser defensivo disparado contra ameaças
+  /// Getter de compatibilidade retroativa com maxHp
+  double get maxHp => totalIntegrity;
+
+  /// Dano por segundo (DPS) do ataque básico disparado contra ameaças
   double get laserDps => 50.0 + ((cpuLevel - 1) * 30.0);
 
   /// Número de alvos simultâneos que o Mainframe pode alvejar (Canais de buffer de RAM)
   int get targetCount => ramLevel.clamp(1, 4);
 
-  /// Alcance do feixe defensivo na sala do servidor
-  double get defenseRange => 260.0;
+  /// Alcance do feixe defensivo na sala do servidor (calibrado para 160px)
+  double get defenseRange => 160.0;
 
   /// Percentual de integridade restante (0 a 100)
-  double get hpPercentage => (currentHp / maxHp * 100.0).clamp(0.0, 100.0);
+  double get hpPercentage => (currentHp / totalIntegrity * 100.0).clamp(0.0, 100.0);
 
   /// Indica se o Mainframe foi comprometido / destruído
   bool get isDestroyed => currentHp <= 0.0;
@@ -77,20 +80,21 @@ class MainframeModel {
   MainframeModel upgradeDisk() {
     if (!canUpgradeDisk) return this;
     final newDisk = diskLevel + 1;
-    final addedHp = 400.0;
+    const addedHp = 400.0;
+    final newTotal = 1000.0 + ((newDisk - 1) * 400.0);
     return copyWith(
       diskLevel: newDisk,
-      currentHp: (currentHp + addedHp).clamp(0.0, 1000.0 + ((newDisk - 1) * 400.0)),
+      currentHp: (currentHp + addedHp).clamp(0.0, newTotal),
     );
   }
 
   MainframeModel receiveDamage(double damage) {
-    final nextHp = (currentHp - damage).clamp(0.0, maxHp);
+    final nextHp = (currentHp - damage).clamp(0.0, totalIntegrity);
     return copyWith(currentHp: nextHp);
   }
 
   MainframeModel heal(double amount) {
-    final nextHp = (currentHp + amount).clamp(0.0, maxHp);
+    final nextHp = (currentHp + amount).clamp(0.0, totalIntegrity);
     return copyWith(currentHp: nextHp);
   }
 

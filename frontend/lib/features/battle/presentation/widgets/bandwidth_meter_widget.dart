@@ -20,12 +20,12 @@ class BandwidthMeterWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.surface.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.surface.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.zero,
         border: Border.all(color: AppColors.borderGlow),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.5),
+            color: Colors.black.withValues(alpha: 0.5),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -59,7 +59,7 @@ class BandwidthMeterWidget extends StatelessWidget {
                   height: 14,
                   decoration: BoxDecoration(
                     color: AppColors.cardSurface,
-                    borderRadius: BorderRadius.circular(7),
+                    borderRadius: BorderRadius.zero,
                     border: Border.all(color: AppColors.border),
                   ),
                 ),
@@ -70,7 +70,7 @@ class BandwidthMeterWidget extends StatelessWidget {
                     height: 14,
                     decoration: BoxDecoration(
                       gradient: AppColors.bandwidthGradient,
-                      borderRadius: BorderRadius.circular(7),
+                      borderRadius: BorderRadius.zero,
                       boxShadow: AppColors.neonGlow(AppColors.bandwidth, blur: 6),
                     ),
                   ),
@@ -83,7 +83,7 @@ class BandwidthMeterWidget extends StatelessWidget {
                     (index) => Container(
                       width: 1,
                       height: 14,
-                      color: Colors.black.withOpacity(0.35),
+                      color: Colors.black.withValues(alpha: 0.35),
                     ),
                   ),
                 ),
