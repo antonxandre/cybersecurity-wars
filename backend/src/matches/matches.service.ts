@@ -154,11 +154,89 @@ export class MatchesService {
     if (!match) {
       throw new NotFoundException(`Match ${matchId} not found`);
     }
+
+    // Exclusão automática sob demanda se criada há mais de 1 hora
+    const now = Date.now();
+    const createdTime = new Date(match.createdAt).getTime();
+    if (now - createdTime > 60 * 60 * 1000) {
+      this.deleteMatch(match.id);
+      throw new NotFoundException(`Match ${matchId} expirou e foi excluída automaticamente (+1h de criação)`);
+    }
+
     return match;
   }
 
   async getAllMatches() {
-    return Array.from(this.matches.values()).map((m) => this.formatMatch(m));
+    const now = Date.now();
+    const activeMatches: ReturnType<typeof this.formatMatch>[] = [];
+
+    for (const [key, m] of this.matches.entries()) {
+      const createdTime = new Date(m.createdAt).getTime();
+      if (now - createdTime > 60 * 60 * 1000) {
+        this.matches.delete(key);
+        this.logger.log(`[MatchesService] Sala expirada ${m.id} (${m.code}) excluída na listagem (+1h).`);
+      } else {
+        activeMatches.push(this.formatMatch(m));
+      }
+    }
+
+    return activeMatches;
+  }
+
+  deleteMatch(matchId: string): MatchSession | null {
+    let match = this.matches.get(matchId);
+    let matchedKey: string | null = match ? matchId : null;
+
+    if (!match) {
+      const matchIdLower = matchId.toLowerCase();
+      for (const [key, m] of this.matches.entries()) {
+        if (
+          key.toLowerCase() === matchIdLower ||
+          m.id.toLowerCase() === matchIdLower ||
+          (m.code && m.code.toLowerCase() === matchIdLower)
+        ) {
+          match = m;
+          matchedKey = key;
+          break;
+        }
+      }
+    }
+
+    if (matchedKey) {
+      this.matches.delete(matchedKey);
+    }
+    if (match) {
+      this.matches.delete(match.id);
+      if (match.code) {
+        this.matches.delete(match.code);
+      }
+      this.logger.log(`Match excluída: ${match.id} (code: ${match.code})`);
+      return match;
+    }
+    return null;
+  }
+
+  cleanupExpiredMatches(maxAgeMs: number = 60 * 60 * 1000): MatchSession[] {
+    const now = Date.now();
+    const expired: MatchSession[] = [];
+
+    for (const [key, match] of this.matches.entries()) {
+      const createdTime = new Date(match.createdAt).getTime();
+      const ageMs = now - createdTime;
+
+      if (ageMs > maxAgeMs) {
+        this.matches.delete(key);
+        if (match.code) {
+          this.matches.delete(match.code);
+        }
+        expired.push(match);
+        this.logger.log(
+          `[Job Limpeza] Sala ${match.id} (code: ${match.code}) expirou após ${Math.round(ageMs / 1000 / 60)}min (criada em ${new Date(match.createdAt).toISOString()}) e foi excluída.`,
+        );
+      }
+    }
+
+    return expired;
   }
 
   async joinMatch(matchId: string, user: { sub: number; username: string; role: UserRole }, teamChoice?: UserRole) {

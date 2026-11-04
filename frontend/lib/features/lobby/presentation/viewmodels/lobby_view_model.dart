@@ -301,6 +301,44 @@ class LobbyViewModel extends ChangeNotifier {
       if (_isDisposed) return;
       refreshPublicRooms();
     });
+
+    _socketService.on('lobby:room_deleted', (data) {
+      if (_isDisposed || data is! Map) return;
+      try {
+        final id = data['id']?.toString() ?? '';
+        final code = data['code']?.toString() ?? '';
+        _publicRooms.removeWhere((r) =>
+            (code.isNotEmpty && r.code.toUpperCase() == code.toUpperCase()) ||
+            (id.isNotEmpty && (r.code.toUpperCase() == id.toUpperCase() || r.code == id)));
+
+        if (_activeWaitingRoom != null &&
+            ((code.isNotEmpty && _activeWaitingRoom!.code.toUpperCase() == code.toUpperCase()) ||
+                (id.isNotEmpty && _activeWaitingRoom!.code == id))) {
+          _activeWaitingRoom = null;
+          _cancelTimers();
+          _matchmakingPhase = MatchmakingPhase.idle;
+          _matchmakingElapsedSeconds = 0;
+        }
+        notifyListeners();
+      } catch (e) {
+        debugPrint('[LobbyViewModel] Erro em lobby:room_deleted: $e');
+      }
+    });
+
+    _socketService.on('match:expired', (data) {
+      if (_isDisposed) return;
+      final id = data is Map ? data['id']?.toString() ?? '' : '';
+      final code = data is Map ? data['code']?.toString() ?? '' : '';
+      if (_activeWaitingRoom != null &&
+          ((code.isNotEmpty && _activeWaitingRoom!.code.toUpperCase() == code.toUpperCase()) ||
+              (id.isNotEmpty && _activeWaitingRoom!.code == id))) {
+        _activeWaitingRoom = null;
+        _cancelTimers();
+        _matchmakingPhase = MatchmakingPhase.idle;
+        _matchmakingElapsedSeconds = 0;
+        notifyListeners();
+      }
+    });
   }
 
   /// Inicia a partida a partir do Host e notifica todos os operadores na sala via WebSocket.
@@ -512,6 +550,8 @@ class LobbyViewModel extends ChangeNotifier {
     _socketService.off('match:state_changed');
     _socketService.off('match:started');
     _socketService.off('match:player_left');
+    _socketService.off('lobby:room_deleted');
+    _socketService.off('match:expired');
     _socketService.dispose();
     super.dispose();
   }

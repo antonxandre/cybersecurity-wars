@@ -2,10 +2,12 @@ import {
   Controller,
   Post,
   Get,
+  Delete,
   Param,
   Body,
   UseGuards,
   Req,
+  ForbiddenException,
 } from '@nestjs/common';
 import { MatchesService } from './matches.service.js';
 import { MatchesGateway } from './matches.gateway.js';
@@ -47,6 +49,31 @@ export class MatchesController {
   @Get(':id')
   async getOne(@Param('id') id: string) {
     return this.matchesService.getMatch(id);
+  }
+
+  @Delete(':id')
+  async delete(@Param('id') id: string, @Req() req: any) {
+    const match = await this.matchesService.getMatch(id);
+    const username = req.user.username;
+    const role = req.user.role;
+
+    const isHost =
+      match.hostUsername === username ||
+      match.bluePlayer?.username === username ||
+      match.redPlayer?.username === username;
+    const isAdmin = role === 'ADMIN';
+
+    if (!isHost && !isAdmin) {
+      throw new ForbiddenException(
+        'Apenas o Host da sala ou um Administrador pode encerrar esta sala (OWASP A01)',
+      );
+    }
+
+    const deleted = this.matchesService.deleteMatch(id);
+    if (deleted) {
+      this.matchesGateway.broadcastRoomDeleted(deleted, 'MANUAL_DELETION');
+    }
+    return { success: true, message: `Sala ${id} encerrada com sucesso.` };
   }
 
   @Post(':id/join')

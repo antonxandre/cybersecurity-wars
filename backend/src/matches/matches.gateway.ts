@@ -85,6 +85,33 @@ export class MatchesGateway implements OnGatewayConnection, OnGatewayDisconnect 
     this.server.emit('lobby:room_updated', match);
   }
 
+  broadcastRoomDeleted(match: { id: string; code?: string }, reason: string = 'EXPIRED_AFTER_1_HOUR') {
+    const code = match.code || match.id;
+    const payload = {
+      id: match.id,
+      code,
+      reason,
+      message: 'A sala expirou após 1 hora de criação e foi encerrada automaticamente.',
+    };
+
+    if (this.server) {
+      this.server.emit('lobby:room_deleted', payload);
+      this.server.to(`match:${match.id}`).emit('match:expired', payload);
+      this.server.to(`match:${code}`).emit('match:expired', payload);
+      this.server.to(`match:${match.id}`).emit('match:deleted', payload);
+      this.server.to(`match:${code}`).emit('match:deleted', payload);
+
+      try {
+        this.server.in(`match:${match.id}`)?.socketsLeave(`match:${match.id}`);
+        if (code !== match.id) {
+          this.server.in(`match:${code}`)?.socketsLeave(`match:${code}`);
+        }
+      } catch (err) {
+        this.logger.debug(`Erro ao desvincular sockets da sala excluída ${match.id}: ${String(err)}`);
+      }
+    }
+  }
+
   @SubscribeMessage('join_match')
   async handleJoinMatch(
     @ConnectedSocket() client: Socket,

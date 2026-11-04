@@ -74,4 +74,46 @@ describe('MatchesService', () => {
     expect(found?.hostUsername).toBe('cyber_host');
     expect(found?.players).toBe(1);
   });
+
+  it('should automatically delete matches older than 1 hour during cleanup', async () => {
+    const user = { sub: 1, username: 'host1', role: UserRole.BLUE_TEAM };
+
+    // Create match 1: recent (10 minutes ago)
+    await matchesService.createMatch('scenario-a', user, {
+      customCode: 'RECENT-1',
+    });
+
+    // Create match 2: old (created 65 minutes ago)
+    await matchesService.createMatch('scenario-a', user, {
+      customCode: 'OLD-ROOM-1',
+    });
+    // Manually manipulate createdAt to 65 minutes in the past
+    const matchRaw = await matchesService.getMatch('OLD-ROOM-1');
+    matchRaw.createdAt = new Date(Date.now() - 65 * 60 * 1000);
+
+    const expired = matchesService.cleanupExpiredMatches(60 * 60 * 1000);
+
+    expect(expired.some((m) => m.code === 'OLD-ROOM-1')).toBe(true);
+    expect(expired.some((m) => m.code === 'RECENT-1')).toBe(false);
+
+    // Verify old match was deleted
+    await expect(matchesService.getMatch('OLD-ROOM-1')).rejects.toThrow();
+
+    // Verify recent match remains
+    const retrievedRecent = await matchesService.getMatch('RECENT-1');
+    expect(retrievedRecent).toBeDefined();
+  });
+
+  it('should delete a match explicitly via deleteMatch', async () => {
+    const user = { sub: 2, username: 'host2', role: UserRole.RED_TEAM };
+    await matchesService.createMatch('scenario-a', user, {
+      customCode: 'DELETE-ME',
+    });
+
+    const deleted = matchesService.deleteMatch('DELETE-ME');
+    expect(deleted).toBeDefined();
+    expect(deleted?.code).toBe('DELETE-ME');
+
+    await expect(matchesService.getMatch('DELETE-ME')).rejects.toThrow();
+  });
 });
