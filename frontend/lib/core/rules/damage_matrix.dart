@@ -93,28 +93,34 @@ class DamageMatrix {
     switch (attack) {
       case CombatElement.fire:
         if (defense == CombatElement.air) return advantage; // Fogo consome Ar
-        if (defense == CombatElement.water)
+        if (defense == CombatElement.water) {
           return disadvantage; // Água apaga Fogo
+        }
         return neutral;
 
       case CombatElement.water:
         if (defense == CombatElement.fire) return advantage; // Água apaga Fogo
-        if (defense == CombatElement.earth)
+        if (defense == CombatElement.earth) {
           return disadvantage; // Terra absorve Água
+        }
         return neutral;
 
       case CombatElement.earth:
-        if (defense == CombatElement.water)
+        if (defense == CombatElement.water) {
           return advantage; // Terra absorve Água
-        if (defense == CombatElement.air)
+        }
+        if (defense == CombatElement.air) {
           return disadvantage; // Ar desgasta Terra
+        }
         return neutral;
 
       case CombatElement.air:
-        if (defense == CombatElement.earth)
+        if (defense == CombatElement.earth) {
           return advantage; // Ar desgasta Terra
-        if (defense == CombatElement.fire)
+        }
+        if (defense == CombatElement.fire) {
           return disadvantage; // Fogo queima com Ar
+        }
         return neutral;
 
       case CombatElement.mainframe:

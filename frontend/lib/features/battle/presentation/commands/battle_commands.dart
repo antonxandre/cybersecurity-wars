@@ -63,7 +63,8 @@ class BuildBastionNodeCommand extends GameCommand<BattleViewModel> {
   }
 
   @override
-  Future<void> undo(BattleViewModel vm) async {
+  Future<void> undo(BattleViewModel context) async {
+    final vm = context;
     final state = vm.state.value;
     final key = '${node.gridX},${node.gridY}';
     final updatedNodes = Map<String, BastionNode>.from(state.nodes)..remove(key);
@@ -141,7 +142,8 @@ class DismantleBastionNodeCommand extends GameCommand<BattleViewModel> {
   }
 
   @override
-  Future<void> undo(BattleViewModel vm) async {
+  Future<void> undo(BattleViewModel context) async {
+    final vm = context;
     final state = vm.state.value;
     final key = '${node.gridX},${node.gridY}';
     final updatedNodes = Map<String, BastionNode>.from(state.nodes)..[key] = node;

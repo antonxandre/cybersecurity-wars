@@ -144,38 +144,48 @@ class BastionNode {
   String get currentEffectDescription {
     switch (type) {
       case BastionNodeType.firewall:
-        if (level == 1)
+        if (level == 1) {
           return 'Barreira Básica: Interceptação pontual e absorção pesada.';
-        if (level == 2)
+        }
+        if (level == 2) {
           return 'Stateful Inspection: Reduz em 15% todo dano recebido.';
+        }
         return 'Stateful Inspection (+15% de resistência passiva a dano).';
 
       case BastionNodeType.proxy:
-        if (level == 1)
+        if (level == 1) {
           return 'Alta Cadência: Disparos rápidos contra o alvo mais próximo.';
-        if (level == 2)
+        }
+        if (level == 2) {
           return 'Reverse Proxy: Dispara contra 2 alvos simultâneos.';
+        }
         return 'Reverse Proxy: Disparo simultâneo multithread com alta cadência.';
 
       case BastionNodeType.vpn:
-        if (level == 1)
+        if (level == 1) {
           return 'Aura Segura: Concede +15% de DPS a nós aliados no raio.';
-        if (level == 2)
+        }
+        if (level == 2) {
           return 'Túnel IPSec: Eleva o bônus para +25% de DPS e +15% de cadência.';
+        }
         return 'Túnel IPSec (+25% de DPS e +15% de velocidade de disparo aos vizinhos).';
 
       case BastionNodeType.ids:
-        if (level == 1)
+        if (level == 1) {
           return 'Sniper de Rede: Longo alcance focado no pacote com maior HP.';
-        if (level == 2)
+        }
+        if (level == 2) {
           return 'Assinatura Heurística: Causa +35% de dano bônus contra alvos pesados.';
+        }
         return 'Assinatura Heurística (+35% de dano contra malwares pesados e chefes).';
 
       case BastionNodeType.honeypot:
-        if (level == 1)
+        if (level == 1) {
           return 'Armadilha Lógica: Reduz a velocidade dos malwares no raio em 30%.';
-        if (level == 2)
+        }
+        if (level == 2) {
           return 'Isca Magnética: Reduz a velocidade em 45% e atrai o foco para si.';
+        }
         return 'Isca Magnética (-45% de velocidade inimiga e atração prioritária).';
     }
   }

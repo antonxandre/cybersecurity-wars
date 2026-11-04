@@ -24,7 +24,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isRegisterMode = false;
   bool _isLoading = false;
   bool _obscurePassword = true;
-  UserRole _selectedRole = UserRole.blueTeam;
+  final UserRole _selectedRole = UserRole.blueTeam;
   String? _errorMessage;
 
   @override

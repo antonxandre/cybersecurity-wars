@@ -56,7 +56,7 @@ void main() {
     });
 
     test('Password exceeding 128 characters is rejected to mitigate Hash DoS', () {
-      final longPassword = 'P@ssword1!' + 'A' * 125;
+      final longPassword = 'P@ssword1!${'A' * 125}';
       final result = PasswordValidator.analyze(longPassword);
       expect(result.isValid, isFalse);
       expect(result.errorMessage, contains('128 caracteres'));
