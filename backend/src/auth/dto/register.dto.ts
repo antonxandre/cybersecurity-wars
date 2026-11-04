@@ -1,4 +1,13 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength, MaxLength, IsEnum, IsOptional } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  MinLength,
+  MaxLength,
+  IsEnum,
+  IsOptional,
+  Matches,
+} from 'class-validator';
 import { UserRole } from '../../common/decorators/roles.decorator.js';
 
 export class RegisterDto {
@@ -16,6 +25,13 @@ export class RegisterDto {
   @IsNotEmpty()
   @MinLength(8, { message: 'Password must have at least 8 characters' })
   @MaxLength(128, { message: 'Password cannot exceed 128 characters' })
+  @Matches(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~`]).{8,128}$/,
+    {
+      message:
+        'Password must contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character (!@#$%^&*)',
+    },
+  )
   password: string;
 
   @IsOptional()

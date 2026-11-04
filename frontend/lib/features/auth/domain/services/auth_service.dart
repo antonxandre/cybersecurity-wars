@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../../../core/config/api_config.dart';
 import '../../../../core/storage/local_storage_adapter.dart';
+import '../../../../core/utils/password_validator.dart';
 import '../models/auth_user.dart';
 
 /// Serviço de Autenticação com suporte a JWT, mitigação OWASP A01 & A07 e persistência de sessão.
@@ -129,8 +130,13 @@ class AuthService extends ChangeNotifier {
     final cleanEmail = _sanitize(email);
     final cleanPassword = password.trim();
 
-    if (cleanEmail.isEmpty || cleanPassword.isEmpty) {
-      return (success: false, errorMessage: 'Email e senha são obrigatórios.');
+    if (cleanEmail.isEmpty) {
+      return (success: false, errorMessage: 'O email é obrigatório.');
+    }
+
+    final loginValidation = PasswordValidator.validateLogin(cleanPassword);
+    if (!loginValidation.isValid) {
+      return (success: false, errorMessage: loginValidation.errorMessage);
     }
 
     try {
@@ -184,10 +190,19 @@ class AuthService extends ChangeNotifier {
     final cleanEmail = _sanitize(email);
     final cleanUsername = _sanitize(username);
 
-    if (cleanEmail.isEmpty || cleanUsername.isEmpty || password.length < 8) {
+    if (cleanEmail.isEmpty || cleanUsername.isEmpty) {
       return (
         success: false,
-        errorMessage: 'Preencha todos os campos. A senha deve possuir pelo menos 8 caracteres.',
+        errorMessage: 'Preencha todos os campos obrigatórios (email e nome).',
+      );
+    }
+
+    final strength = PasswordValidator.analyze(password);
+    if (!strength.isValid) {
+      return (
+        success: false,
+        errorMessage: strength.errorMessage ??
+            'A senha deve possuir pelo menos 8 caracteres, incluindo letras maiúsculas, minúsculas, números e caracteres especiais.',
       );
     }
 
