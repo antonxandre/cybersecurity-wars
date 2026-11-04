@@ -86,12 +86,12 @@ Em conformidade com as diretrizes do Eixo 3, o código implementa defesas ativas
 
 ## ✅ Checklist Final de Entrega
 
-- [ ] A aplicação Web está no ar e acessível por um IP público (Eixo 1).
-- [ ] O Web Server (Nginx ou Apache) está configurado com HTTPS (Certbot/Let's Encrypt) e redireciona o tráfego HTTP para HTTPS automaticamente (Eixo 1).
-- [ ] Os testes de TLS/SSL retornaram *Conformidade* ou *Nota A* (dependendo se IP ou domínio), com a devida ativação de PQC (Eixo 1).
-- [ ] O acesso à nuvem utiliza as seguintes boas práticas: uso de chave SSH e Fail2Ban configurado para a porta 22 (Eixo 1).
-- [ ] O código está versionado em um repositório público no GitHub e a conta está devidamente configurada com boas práticas (Eixo 2).
-- [ ] O `.gitignore` está configurado e não há chaves/senhas expostas no código (Eixo 2).
-- [ ] A aplicação possui Login, Página Interna e Logout, e foi desenvolvida com o auxílio de IA via IDE Antigravity ou equivalente (Eixo 3).
-- [ ] O `README.md` explica claramente quais foram os 3 itens do OWASP Top 10 mitigados e onde encontrá-los no código (Eixo 3).
-- [ ] O fluxo de implantação está devidamente automatizado com CI/CD utilizando o GitHub Actions (Integração e Entrega Contínuas).
+- [x] A aplicação Web está no ar e acessível por um IP público (Eixo 1).
+- [x] O Web Server (Nginx ou Apache) está configurado com HTTPS (Certbot/Let's Encrypt) e redireciona o tráfego HTTP para HTTPS automaticamente (Eixo 1).
+- [x] Os testes de TLS/SSL retornaram *Conformidade* ou *Nota A* (dependendo se IP ou domínio), com a devida ativação de PQC (Eixo 1).
+- [x] O acesso à nuvem utiliza as seguintes boas práticas: uso de chave SSH e Fail2Ban configurado para a porta 22 (Eixo 1).
+- [x] O código está versionado em um repositório público no GitHub e a conta está devidamente configurada com boas práticas (Eixo 2).
+- [x] O `.gitignore` está configurado e não há chaves/senhas expostas no código (Eixo 2).
+- [x] A aplicação possui Login, Página Interna e Logout, e foi desenvolvida com o auxílio de IA via IDE Antigravity ou equivalente (Eixo 3).
+- [x] O `README.md` explica claramente quais foram os 3 itens do OWASP Top 10 mitigados e onde encontrá-los no código (Eixo 3).
+- [x] O fluxo de implantação está devidamente automatizado com CI/CD utilizando o GitHub Actions (Integração e Entrega Contínuas).

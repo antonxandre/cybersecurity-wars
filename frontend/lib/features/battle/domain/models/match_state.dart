@@ -144,7 +144,7 @@ class MatchState {
       totalLeaks: 0,
       chatMessages: [
         ChatMessage.system(
-          text: 'Conexão estabelecida, bem-vindo à Cyber Arena!',
+          text: 'Conexão segura estabelecida, bem-vindo à Cyber Arena!',
         ),
       ],
     );

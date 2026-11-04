@@ -1,13 +1,40 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:promptsec_arena_front/core/network/socket_service.dart';
+import 'package:promptsec_arena_front/features/lobby/data/lobby_mock_repository.dart';
 import 'package:promptsec_arena_front/features/lobby/domain/models/lobby_models.dart';
 import 'package:promptsec_arena_front/features/lobby/presentation/viewmodels/lobby_view_model.dart';
+
+class FakeSocketService extends SocketService {
+  FakeSocketService() : super(namespace: '/arena');
+
+  @override
+  void connect() {}
+
+  @override
+  void emit(String event, [dynamic data, Function? ack]) {}
+
+  @override
+  void on(String event, void Function(dynamic data) handler) {}
+
+  @override
+  void off(String event, [void Function(dynamic data)? handler]) {}
+
+  @override
+  void disconnect() {}
+
+  @override
+  void dispose() {}
+}
 
 void main() {
   group('LobbyViewModel Tests', () {
     late LobbyViewModel viewModel;
 
     setUp(() {
-      viewModel = LobbyViewModel();
+      viewModel = LobbyViewModel(
+        repository: const LobbyMockRepository(),
+        socketService: FakeSocketService(),
+      );
     });
 
     tearDown(() {
