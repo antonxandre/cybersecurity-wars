@@ -35,10 +35,11 @@ class SettingsService extends ChangeNotifier {
     }
 
     // Sincroniza preferência de tela cheia com FullscreenHelper
-    if (kDebugMode) {
-      FullscreenHelper.maximize();
+    if (_settings.fullscreenByDefault) {
+      FullscreenHelper.setAutoFullscreen(true);
     } else {
-      FullscreenHelper.setAutoFullscreen(_settings.fullscreenByDefault);
+      FullscreenHelper.exitFullscreen();
+      FullscreenHelper.maximize();
     }
     notifyListeners();
   }
@@ -152,7 +153,8 @@ class SettingsService extends ChangeNotifier {
   void resetToDefaults() {
     _settings = const GameSettings();
     _persist();
-    FullscreenHelper.setAutoFullscreen(true);
+    FullscreenHelper.setAutoFullscreen(false);
+    FullscreenHelper.exitFullscreen();
     notifyListeners();
   }
 }

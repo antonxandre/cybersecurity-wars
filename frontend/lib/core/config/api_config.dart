@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-/// Configuração centralizada de endpoints e infraestrutura de rede da PromptSec Arena.
+/// Configuração centralizada de endpoints e infraestrutura de rede da Cyber Arena.
 /// Suporta injeção de ambiente via `--dart-define=API_BASE_URL=...` e `--dart-define=WS_URL=...`,
 /// com detecção automática de origem em navegadores (Flutter Web).
 class ApiConfig {
@@ -38,9 +38,8 @@ class ApiConfig {
   /// Exemplo: `ApiConfig.apiUrl('/auth/login')` -> `http://localhost:3000/api/auth/login`
   static Uri apiUrl(String path, [Map<String, dynamic>? queryParameters]) {
     final cleanPath = path.startsWith('/') ? path : '/$path';
-    final fullPath = cleanPath.startsWith(apiPrefix)
-        ? cleanPath
-        : '$apiPrefix$cleanPath';
+    final fullPath =
+        cleanPath.startsWith(apiPrefix) ? cleanPath : '$apiPrefix$cleanPath';
 
     final base = Uri.parse(baseUrl);
     return Uri(

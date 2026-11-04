@@ -8,7 +8,7 @@ import '../../domain/services/settings_service.dart';
 
 enum SettingsCategory { video, audio, security, gameplay, system }
 
-/// Tela de Configurações do Sistema Tático (PromptSec Arena / CyberWars).
+/// Tela de Configurações do Sistema Tático (Cyber Arena / CyberWars).
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -61,7 +61,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                       if (isWide) {
                         return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 16),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -78,10 +79,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   decoration: BoxDecoration(
                                     color: AppColors.surface,
                                     borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(color: AppColors.borderGlow),
+                                    border:
+                                        Border.all(color: AppColors.borderGlow),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.4),
+                                        color:
+                                            Colors.black.withValues(alpha: 0.4),
                                         blurRadius: 16,
                                         offset: const Offset(0, 4),
                                       ),
@@ -125,7 +128,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: const BoxDecoration(
         color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.borderGlow, width: 1.5)),
+        border:
+            Border(bottom: BorderSide(color: AppColors.borderGlow, width: 1.5)),
       ),
       child: Row(
         children: [
@@ -135,10 +139,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               foregroundColor: AppColors.blueTeam,
               side: const BorderSide(color: AppColors.blueTeam, width: 1.2),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
             icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 14),
-            label: Text('RETORNAR', style: AppTypography.codeSmall.copyWith(fontWeight: FontWeight.bold)),
+            label: Text('RETORNAR',
+                style: AppTypography.codeSmall
+                    .copyWith(fontWeight: FontWeight.bold)),
             onPressed: _handleBack,
           ),
           const SizedBox(width: 16),
@@ -151,7 +158,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: AppColors.blueTeam),
             ),
-            child: const Icon(Icons.tune_rounded, color: AppColors.blueTeam, size: 20),
+            child: const Icon(Icons.tune_rounded,
+                color: AppColors.blueTeam, size: 20),
           ),
           const SizedBox(width: 12),
           Column(
@@ -159,10 +167,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               Row(
                 children: [
-                  Text('CONFIGURAÇÕES DO SISTEMA', style: AppTypography.titleLarge),
+                  Text('CONFIGURAÇÕES DO SISTEMA',
+                      style: AppTypography.titleLarge),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: AppColors.bandwidth.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(4),
@@ -181,7 +191,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               Text(
                 'Personalize Vídeo, Áudio, Segurança DevSecOps e Jogabilidade',
-                style: AppTypography.codeSmall.copyWith(color: AppColors.textMuted),
+                style: AppTypography.codeSmall
+                    .copyWith(color: AppColors.textMuted),
               ),
             ],
           ),
@@ -197,7 +208,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: const Icon(Icons.restart_alt_rounded, size: 18),
             label: Text(
               'RESTAURAR PADRÕES',
-              style: AppTypography.codeSmall.copyWith(color: AppColors.redTeam, fontWeight: FontWeight.bold),
+              style: AppTypography.codeSmall.copyWith(
+                  color: AppColors.redTeam, fontWeight: FontWeight.bold),
             ),
             onPressed: _confirmResetToDefaults,
           ),
@@ -237,12 +249,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             return InkWell(
               onTap: () => setState(() => _selectedCategory = cat),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  color: isSelected ? AppColors.cardSurface : Colors.transparent,
+                  color:
+                      isSelected ? AppColors.cardSurface : Colors.transparent,
                   border: Border(
                     left: BorderSide(
-                      color: isSelected ? AppColors.blueTeam : Colors.transparent,
+                      color:
+                          isSelected ? AppColors.blueTeam : Colors.transparent,
                       width: 4,
                     ),
                   ),
@@ -252,20 +267,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Icon(
                       icon,
                       size: 20,
-                      color: isSelected ? AppColors.blueTeam : AppColors.textSecondary,
+                      color: isSelected
+                          ? AppColors.blueTeam
+                          : AppColors.textSecondary,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         title,
                         style: AppTypography.bodyMedium.copyWith(
-                          color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected
+                              ? AppColors.textPrimary
+                              : AppColors.textSecondary,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
                     ),
                     if (isSelected)
-                      const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.blueTeam),
+                      const Icon(Icons.chevron_right_rounded,
+                          size: 18, color: AppColors.blueTeam),
                   ],
                 ),
               ),
@@ -290,7 +311,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: ChoiceChip(
-              avatar: Icon(icon, size: 16, color: isSelected ? Colors.black : AppColors.textSecondary),
+              avatar: Icon(icon,
+                  size: 16,
+                  color: isSelected ? Colors.black : AppColors.textSecondary),
               label: Text(title),
               labelStyle: AppTypography.codeSmall.copyWith(
                 color: isSelected ? Colors.black : AppColors.textPrimary,
@@ -312,8 +335,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       SettingsCategory.video => ('Vídeo & Gráficos', Icons.monitor_rounded),
       SettingsCategory.audio => ('Áudio & Efeitos', Icons.volume_up_rounded),
       SettingsCategory.security => ('Segurança & IA', Icons.security_rounded),
-      SettingsCategory.gameplay => ('Jogabilidade', Icons.sports_esports_rounded),
-      SettingsCategory.system => ('Sistema & OWASP', Icons.info_outline_rounded),
+      SettingsCategory.gameplay => (
+          'Jogabilidade',
+          Icons.sports_esports_rounded
+        ),
+      SettingsCategory.system => (
+          'Sistema & OWASP',
+          Icons.info_outline_rounded
+        ),
     };
   }
 
@@ -348,8 +377,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           decoration: BoxDecoration(
             color: AppColors.cardSurface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.blueTeam.withValues(alpha: 0.5), width: 1.5),
-            boxShadow: AppColors.neonGlow(AppColors.blueTeam, blur: 10, spread: 0.5),
+            border: Border.all(
+                color: AppColors.blueTeam.withValues(alpha: 0.5), width: 1.5),
+            boxShadow:
+                AppColors.neonGlow(AppColors.blueTeam, blur: 10, spread: 0.5),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -362,7 +393,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       color: AppColors.blueTeam.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.fullscreen_rounded, color: AppColors.blueTeam, size: 24),
+                    child: const Icon(Icons.fullscreen_rounded,
+                        color: AppColors.blueTeam, size: 24),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -371,24 +403,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       children: [
                         Row(
                           children: [
-                            Text('Tela Cheia por Padrão (Fullscreen)', style: AppTypography.titleMedium),
+                            Text('Tela Cheia por Padrão (Fullscreen)',
+                                style: AppTypography.titleMedium),
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: settings.fullscreenByDefault
                                     ? AppColors.bandwidth.withValues(alpha: 0.2)
-                                    : AppColors.textMuted.withValues(alpha: 0.2),
+                                    : AppColors.textMuted
+                                        .withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(4),
                                 border: Border.all(
-                                  color: settings.fullscreenByDefault ? AppColors.bandwidth : AppColors.textMuted,
+                                  color: settings.fullscreenByDefault
+                                      ? AppColors.bandwidth
+                                      : AppColors.textMuted,
                                 ),
                               ),
                               child: Text(
-                                settings.fullscreenByDefault ? 'PADRÃO ATIVADO' : 'MANUAL',
+                                settings.fullscreenByDefault
+                                    ? 'PADRÃO ATIVADO'
+                                    : 'MANUAL',
                                 style: AppTypography.codeSmall.copyWith(
                                   fontSize: 10,
-                                  color: settings.fullscreenByDefault ? AppColors.bandwidth : AppColors.textMuted,
+                                  color: settings.fullscreenByDefault
+                                      ? AppColors.bandwidth
+                                      : AppColors.textMuted,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -420,15 +461,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Row(
                     children: [
                       Icon(
-                        isFullscreen ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                        color: isFullscreen ? AppColors.bandwidth : AppColors.textSecondary,
+                        isFullscreen
+                            ? Icons.check_circle_rounded
+                            : Icons.radio_button_unchecked_rounded,
+                        color: isFullscreen
+                            ? AppColors.bandwidth
+                            : AppColors.textSecondary,
                         size: 16,
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        isFullscreen ? 'Status Atual: Em Tela Cheia' : 'Status Atual: Modo Janela',
+                        isFullscreen
+                            ? 'Status Atual: Em Tela Cheia'
+                            : 'Status Atual: Modo Janela',
                         style: AppTypography.codeSmall.copyWith(
-                          color: isFullscreen ? AppColors.bandwidth : AppColors.textSecondary,
+                          color: isFullscreen
+                              ? AppColors.bandwidth
+                              : AppColors.textSecondary,
                         ),
                       ),
                     ],
@@ -437,12 +486,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.blueTeam,
                       foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
                     ),
-                    icon: Icon(isFullscreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded, size: 18),
+                    icon: Icon(
+                        isFullscreen
+                            ? Icons.fullscreen_exit_rounded
+                            : Icons.fullscreen_rounded,
+                        size: 18),
                     label: Text(
-                      isFullscreen ? 'SAIR DE TELA CHEIA' : 'ENTRAR EM TELA CHEIA AGORA',
-                      style: AppTypography.codeSmall.copyWith(fontWeight: FontWeight.bold),
+                      isFullscreen
+                          ? 'SAIR DE TELA CHEIA'
+                          : 'ENTRAR EM TELA CHEIA AGORA',
+                      style: AppTypography.codeSmall
+                          .copyWith(fontWeight: FontWeight.bold),
                     ),
                     onPressed: () {
                       FullscreenHelper.toggleFullscreen();
@@ -461,7 +518,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           icon: Icons.auto_awesome_rounded,
           iconColor: AppColors.coreAi,
           title: 'Resplendor & Glow Neon Cyberpunk',
-          description: 'Habilita camadas dinâmicas de iluminação e sombras para feixes de laser e bastions.',
+          description:
+              'Habilita camadas dinâmicas de iluminação e sombras para feixes de laser e bastions.',
           value: settings.neonGlowEnabled,
           onChanged: (val) => _settingsService.setNeonGlow(val),
         ),
@@ -471,14 +529,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           icon: Icons.grid_4x4_rounded,
           iconColor: AppColors.bandwidth,
           title: 'Grade Holográfica de Rede Animada',
-          description: 'Exibe a malha de fluxo de pacotes SYN/ACK no plano de fundo panorâmico.',
+          description:
+              'Exibe a malha de fluxo de pacotes SYN/ACK no plano de fundo panorâmico.',
           value: settings.animatedGridEnabled,
           onChanged: (val) => _settingsService.setAnimatedGrid(val),
         ),
 
         const SizedBox(height: 16),
         // Taxa de Quadros Alvo
-        Text('Meta de Taxa de Quadros (Target FPS)', style: AppTypography.titleMedium),
+        Text('Meta de Taxa de Quadros (Target FPS)',
+            style: AppTypography.titleMedium),
         const SizedBox(height: 8),
         Row(
           children: [30, 60, 120].map((fps) {
@@ -489,9 +549,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: () => _settingsService.setTargetFps(fps),
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.blueTeam.withValues(alpha: 0.15) : AppColors.cardSurface,
+                    color: isSelected
+                        ? AppColors.blueTeam.withValues(alpha: 0.15)
+                        : AppColors.cardSurface,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: isSelected ? AppColors.blueTeam : AppColors.border,
@@ -503,13 +566,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Text(
                         '$fps FPS',
                         style: AppTypography.codeMedium.copyWith(
-                          color: isSelected ? AppColors.blueTeam : AppColors.textPrimary,
+                          color: isSelected
+                              ? AppColors.blueTeam
+                              : AppColors.textPrimary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        fps == 30 ? 'Econômico' : (fps == 60 ? 'Competitivo' : 'Ultra Suave'),
+                        fps == 30
+                            ? 'Econômico'
+                            : (fps == 60 ? 'Competitivo' : 'Ultra Suave'),
                         style: AppTypography.bodySmall.copyWith(fontSize: 10),
                       ),
                     ],
@@ -535,7 +602,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           'Ajuste o volume principal, efeitos de alerta tático e trilha sonora synthwave.',
         ),
         const SizedBox(height: 16),
-
         _buildSliderTile(
           icon: Icons.volume_up_rounded,
           iconColor: AppColors.blueTeam,
@@ -544,17 +610,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           onChanged: (val) => _settingsService.setMasterVolume(val),
         ),
         const SizedBox(height: 12),
-
         _buildSliderTile(
           icon: Icons.graphic_eq_rounded,
           iconColor: AppColors.bandwidth,
           title: 'Efeitos Sonoros Táticos (SFX)',
-          subtitle: 'Disparos de laser, propagação de malware, alertas de invasão de portas.',
+          subtitle:
+              'Disparos de laser, propagação de malware, alertas de invasão de portas.',
           value: settings.sfxVolume,
           onChanged: (val) => _settingsService.setSfxVolume(val),
         ),
         const SizedBox(height: 12),
-
         _buildSliderTile(
           icon: Icons.music_note_rounded,
           iconColor: AppColors.coreAi,
@@ -564,12 +629,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           onChanged: (val) => _settingsService.setBgmVolume(val),
         ),
         const SizedBox(height: 16),
-
         _buildSwitchTile(
           icon: Icons.vibration_rounded,
           iconColor: AppColors.cpuClock,
           title: 'Feedback Háptico / Vibração',
-          description: 'Vibração tátil em cliques e impactos no Mainframe em dispositivos móveis.',
+          description:
+              'Vibração tátil em cliques e impactos no Mainframe em dispositivos móveis.',
           value: settings.hapticFeedback,
           onChanged: (val) => _settingsService.setHapticFeedback(val),
         ),
@@ -603,12 +668,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.lock_rounded, color: AppColors.bandwidth, size: 20),
+                  const Icon(Icons.lock_rounded,
+                      color: AppColors.bandwidth, size: 20),
                   const SizedBox(width: 10),
-                  Text('Suíte Criptográfica de Conexão TLS', style: AppTypography.titleMedium),
+                  Text('Suíte Criptográfica de Conexão TLS',
+                      style: AppTypography.titleMedium),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: AppColors.bandwidth.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(4),
@@ -643,7 +711,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     label: Text(cipher),
                     labelStyle: AppTypography.codeSmall.copyWith(
                       color: isSelected ? Colors.black : AppColors.textPrimary,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
                     selected: isSelected,
                     selectedColor: AppColors.bandwidth,
@@ -670,9 +739,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.code_rounded, color: AppColors.coreAi, size: 20),
+                  const Icon(Icons.code_rounded,
+                      color: AppColors.coreAi, size: 20),
                   const SizedBox(width: 10),
-                  Text('Delimitadores de Prompt (Anti Prompt Injection - A03)', style: AppTypography.titleMedium),
+                  Text('Delimitadores de Prompt (Anti Prompt Injection - A03)',
+                      style: AppTypography.titleMedium),
                 ],
               ),
               const SizedBox(height: 8),
@@ -694,7 +765,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     label: Text(del),
                     labelStyle: AppTypography.codeSmall.copyWith(
                       color: isSelected ? Colors.black : AppColors.textPrimary,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
                     selected: isSelected,
                     selectedColor: AppColors.coreAi,
@@ -712,7 +784,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           icon: Icons.psychology_rounded,
           iconColor: AppColors.redTeam,
           title: 'Telemetria de Logprobs e Risco de Jailbreak',
-          description: 'Calcula o medidor de tensão adversarial ao vivo com base na incerteza das respostas do LLM.',
+          description:
+              'Calcula o medidor de tensão adversarial ao vivo com base na incerteza das respostas do LLM.',
           value: settings.logprobsTelemetry,
           onChanged: (val) => _settingsService.setLogprobsTelemetry(val),
         ),
@@ -732,30 +805,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
           'Ajuste o comportamento da câmera, atalhos de posicionamento e fluxo de turnos.',
         ),
         const SizedBox(height: 16),
-
         _buildSwitchTile(
           icon: Icons.pan_tool_rounded,
           iconColor: AppColors.blueTeam,
           title: 'Câmera Panorâmica Livre (Pan & Zoom)',
-          description: 'Permite arrastar a visão tática e navegar entre o seu Mainframe e a base inimiga.',
+          description:
+              'Permite arrastar a visão tática e navegar entre o seu Mainframe e a base inimiga.',
           value: settings.panoramicCamera,
           onChanged: (val) => _settingsService.setPanoramicCamera(val),
         ),
-
         _buildSwitchTile(
           icon: Icons.touch_app_rounded,
           iconColor: AppColors.bandwidth,
           title: 'Construção Rápida (1-Click Deploy)',
-          description: 'Posiciona o nó selecionado diretamente ao clicar na coordenada livre sem abrir modal.',
+          description:
+              'Posiciona o nó selecionado diretamente ao clicar na coordenada livre sem abrir modal.',
           value: settings.quickBuild,
           onChanged: (val) => _settingsService.setQuickBuild(val),
         ),
-
         _buildSwitchTile(
           icon: Icons.timer_outlined,
           iconColor: AppColors.cpuClock,
           title: 'Auto-Ready no Turno Zero',
-          description: 'Sinaliza status Pronto automaticamente caso o tempo de preparação chegue a 0.',
+          description:
+              'Sinaliza status Pronto automaticamente caso o tempo de preparação chegue a 0.',
           value: settings.autoReadyZeroTurn,
           onChanged: (val) => _settingsService.setAutoReadyZeroTurn(val),
         ),
@@ -775,32 +848,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
           'Conformidade dos eixos de infraestrutura, backend NestJS e frontend Flutter Web.',
         ),
         const SizedBox(height: 16),
-
         _buildInfoCard(
           title: 'EIXO 1: INFRAESTRUTURA CLOUD & HARDENING',
           items: [
             ('Servidor GCP', 'Ubuntu 24.04 LTS (e2-micro)'),
-            ('Acesso Administrativo', 'Ed25519 SSH Only (Root e Senhas desabilitados)'),
+            (
+              'Acesso Administrativo',
+              'Ed25519 SSH Only (Root e Senhas desabilitados)'
+            ),
             ('Fail2Ban SSH', 'Porta 22 | MaxRetry = 4 | BanTime = 24h'),
-            ('Nginx Reverse Proxy', 'TLS 1.3 + PQC X25519MLKEM768 | Portas 80, 443'),
+            (
+              'Nginx Reverse Proxy',
+              'TLS 1.3 + PQC X25519MLKEM768 | Portas 80, 443'
+            ),
           ],
         ),
         const SizedBox(height: 16),
-
         _buildInfoCard(
           title: 'EIXO 2 & 3: MATRIZ DE SEGURANÇA OWASP 2025',
           items: [
-            ('A01:2025 - Broken Access Control', 'Route Guards declarativos + RBAC NestJS + Destruição de Sessão'),
-            ('A03:2025 - Injection', 'Parametrização Prisma + Sanitização de tags + Delimitadores XML'),
-            ('A07:2025 - Identification Failures', 'Argon2id hashing + Rate Limiting 5 req/min + Sem enumeração'),
+            (
+              'A01:2025 - Broken Access Control',
+              'Route Guards declarativos + RBAC NestJS + Destruição de Sessão'
+            ),
+            (
+              'A03:2025 - Injection',
+              'Parametrização Prisma + Sanitização de tags + Delimitadores XML'
+            ),
+            (
+              'A07:2025 - Identification Failures',
+              'Argon2id hashing + Rate Limiting 5 req/min + Sem enumeração'
+            ),
           ],
         ),
         const SizedBox(height: 16),
-
         _buildInfoCard(
           title: 'VERSIONAMENTO DE PACOTES',
           items: [
-            ('PromptSec Arena', 'v1.0.0+1 (CyberWars Hybrid TD)'),
+            ('Cyber Arena', 'v1.0.0+1 (CyberWars Hybrid TD)'),
             ('Engine Gráfica', 'Flame Engine 1.18.0 (Flutter Web)'),
             ('Roteamento', 'GoRouter 14.2.0'),
           ],
@@ -816,7 +901,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: AppTypography.titleLarge.copyWith(color: AppColors.blueTeam)),
+        Text(title,
+            style:
+                AppTypography.titleLarge.copyWith(color: AppColors.blueTeam)),
         const SizedBox(height: 4),
         Text(subtitle, style: AppTypography.bodySmall),
         const SizedBox(height: 8),
@@ -917,7 +1004,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(6),
@@ -925,7 +1013,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 child: Text(
                   '$percentage%',
-                  style: AppTypography.codeMedium.copyWith(color: iconColor, fontWeight: FontWeight.bold),
+                  style: AppTypography.codeMedium
+                      .copyWith(color: iconColor, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -965,7 +1054,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: AppTypography.codeSmall.copyWith(color: AppColors.blueTeam, fontWeight: FontWeight.bold)),
+          Text(title,
+              style: AppTypography.codeSmall.copyWith(
+                  color: AppColors.blueTeam, fontWeight: FontWeight.bold)),
           const Divider(color: AppColors.border, height: 16),
           ...items.map((item) {
             return Padding(
@@ -975,14 +1066,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Expanded(
                     flex: 2,
-                    child: Text(item.$1, style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary)),
+                    child: Text(item.$1,
+                        style: AppTypography.bodySmall
+                            .copyWith(color: AppColors.textSecondary)),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     flex: 3,
                     child: Text(
                       item.$2,
-                      style: AppTypography.codeSmall.copyWith(color: AppColors.textPrimary),
+                      style: AppTypography.codeSmall
+                          .copyWith(color: AppColors.textPrimary),
                     ),
                   ),
                 ],
@@ -1007,7 +1101,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             const Icon(Icons.warning_amber_rounded, color: AppColors.redTeam),
             const SizedBox(width: 10),
-            Text('RESTAURAR PADRÕES', style: AppTypography.titleMedium.copyWith(color: AppColors.redTeam)),
+            Text('RESTAURAR PADRÕES',
+                style: AppTypography.titleMedium
+                    .copyWith(color: AppColors.redTeam)),
           ],
         ),
         content: Text(
@@ -1016,7 +1112,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         actions: [
           TextButton(
-            child: Text('CANCELAR', style: AppTypography.codeSmall.copyWith(color: AppColors.textSecondary)),
+            child: Text('CANCELAR',
+                style: AppTypography.codeSmall
+                    .copyWith(color: AppColors.textSecondary)),
             onPressed: () => Navigator.of(dialogCtx).pop(),
           ),
           ElevatedButton(
@@ -1024,7 +1122,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               backgroundColor: AppColors.redTeam,
               foregroundColor: Colors.white,
             ),
-            child: Text('RESTAURAR', style: AppTypography.codeSmall.copyWith(fontWeight: FontWeight.bold)),
+            child: Text('RESTAURAR',
+                style: AppTypography.codeSmall
+                    .copyWith(fontWeight: FontWeight.bold)),
             onPressed: () {
               Navigator.of(dialogCtx).pop();
               _settingsService.resetToDefaults();

@@ -6,9 +6,9 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('GameSettings Model Tests', () {
-    test('Default values must have fullscreen enabled and balanced audio/graphics', () {
+    test('Default values must have fullscreen disabled and balanced audio/graphics', () {
       const settings = GameSettings();
-      expect(settings.fullscreenByDefault, isTrue);
+      expect(settings.fullscreenByDefault, isFalse);
       expect(settings.neonGlowEnabled, isTrue);
       expect(settings.animatedGridEnabled, isTrue);
       expect(settings.targetFps, equals(60));
@@ -51,10 +51,10 @@ void main() {
 
     test('copyWith updates individual properties immutably', () {
       const original = GameSettings();
-      final updated = original.copyWith(targetFps: 30, fullscreenByDefault: false);
+      final updated = original.copyWith(targetFps: 30, fullscreenByDefault: true);
 
       expect(updated.targetFps, equals(30));
-      expect(updated.fullscreenByDefault, isFalse);
+      expect(updated.fullscreenByDefault, isTrue);
       expect(updated.masterVolume, equals(original.masterVolume));
     });
   });
@@ -65,7 +65,7 @@ void main() {
       service.initialize();
 
       expect(service.isInitialized, isTrue);
-      expect(service.settings.fullscreenByDefault, isTrue);
+      expect(service.settings.fullscreenByDefault, isFalse);
 
       bool notified = false;
       void listener() {
@@ -82,7 +82,7 @@ void main() {
       expect(service.settings.targetFps, equals(120));
 
       service.resetToDefaults();
-      expect(service.settings.fullscreenByDefault, isTrue);
+      expect(service.settings.fullscreenByDefault, isFalse);
       expect(service.settings.masterVolume, equals(0.8));
 
       service.removeListener(listener);

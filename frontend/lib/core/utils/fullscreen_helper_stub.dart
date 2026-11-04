@@ -2,8 +2,8 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 const MethodChannel _windowChannel = MethodChannel('promptsec.arena/window');
-bool _autoFullscreen = true;
-bool _isDesktopFullscreen = true;
+bool _autoFullscreen = false;
+bool _isDesktopFullscreen = false;
 
 bool get _isDesktopPlatform {
   try {
@@ -17,9 +17,15 @@ void initPlatformDefaultFullscreen() {
   if (_isDesktopPlatform) {
     if (_autoFullscreen) {
       enterPlatformFullscreen();
+    } else {
+      maximizePlatformWindow();
     }
   } else {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    if (_autoFullscreen) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    } else {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
   }
 }
 

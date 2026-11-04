@@ -1,7 +1,7 @@
 import '../../features/battle/domain/models/team_player_model.dart';
 import 'damage_matrix.dart';
 
-/// Motor de Regras Canônicas do PromptSec Arena (CyberWars).
+/// Motor de Regras Canônicas do Cyber Arena (CyberWars).
 /// Responsável pelas regras da economia simétrica (Tokens & Bits), combate elemental,
 /// resolução de vazamentos (leaks) e defesa do Mainframe Central.
 class GameRuleEngine {
@@ -34,19 +34,22 @@ class GameRuleEngine {
   }
 
   /// Verifica se o jogador pode recrutar um minerador gastando Tokens
-  static bool canRecruitMiner({required int currentTokens, required int currentMinersCount}) {
+  static bool canRecruitMiner(
+      {required int currentTokens, required int currentMinersCount}) {
     if (currentMinersCount >= maxMinersPerPlayer) return false;
     final cost = calculateMinerCostTokens(currentMinersCount);
     return currentTokens >= cost;
   }
 
   /// Verifica se o jogador pode construir um nó na grade 4x4 gastando Tokens
-  static bool canBuildNode({required int currentTokens, required int nodeTokenCost}) {
+  static bool canBuildNode(
+      {required int currentTokens, required int nodeTokenCost}) {
     return currentTokens >= nodeTokenCost;
   }
 
   /// Verifica se a equipe/jogador pode enviar um malware de ataque gastando Bits
-  static bool canSendOffensiveAttack({required int currentBits, required int attackBitCost}) {
+  static bool canSendOffensiveAttack(
+      {required int currentBits, required int attackBitCost}) {
     return currentBits >= attackBitCost;
   }
 
@@ -108,7 +111,8 @@ class GameRuleEngine {
     required double threatPayloadDamage,
     CombatElement? threatElement,
   }) {
-    return (currentMainframeHp - threatPayloadDamage).clamp(0.0, double.infinity);
+    return (currentMainframeHp - threatPayloadDamage)
+        .clamp(0.0, double.infinity);
   }
 
   /// Avalia condição de encerramento da partida

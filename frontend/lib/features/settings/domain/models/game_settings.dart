@@ -1,4 +1,4 @@
-/// Modelo de preferências e configurações operacionais do PromptSec Arena.
+/// Modelo de preferências e configurações operacionais do Cyber Arena.
 class GameSettings {
   final bool fullscreenByDefault;
   final bool neonGlowEnabled;
@@ -16,7 +16,7 @@ class GameSettings {
   final bool autoReadyZeroTurn;
 
   const GameSettings({
-    this.fullscreenByDefault = true,
+    this.fullscreenByDefault = false,
     this.neonGlowEnabled = true,
     this.animatedGridEnabled = true,
     this.targetFps = 60,
@@ -85,7 +85,7 @@ class GameSettings {
 
   factory GameSettings.fromJson(Map<String, dynamic> json) {
     return GameSettings(
-      fullscreenByDefault: json['fullscreenByDefault'] as bool? ?? true,
+      fullscreenByDefault: json['fullscreenByDefault'] as bool? ?? false,
       neonGlowEnabled: json['neonGlowEnabled'] as bool? ?? true,
       animatedGridEnabled: json['animatedGridEnabled'] as bool? ?? true,
       targetFps: (json['targetFps'] as num?)?.toInt() ?? 60,
@@ -93,7 +93,8 @@ class GameSettings {
       sfxVolume: (json['sfxVolume'] as num?)?.toDouble() ?? 0.9,
       bgmVolume: (json['bgmVolume'] as num?)?.toDouble() ?? 0.7,
       hapticFeedback: json['hapticFeedback'] as bool? ?? true,
-      promptDelimiter: json['promptDelimiter'] as String? ?? 'XML Boundary (<rules>)',
+      promptDelimiter:
+          json['promptDelimiter'] as String? ?? 'XML Boundary (<rules>)',
       tlsCipher: json['tlsCipher'] as String? ?? 'PQC (X25519MLKEM768)',
       logprobsTelemetry: json['logprobsTelemetry'] as bool? ?? true,
       panoramicCamera: json['panoramicCamera'] as bool? ?? true,

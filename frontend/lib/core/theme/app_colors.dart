@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Paleta de cores e tokens visuais do PromptSec Arena (Cyberpunk High-Tech Neon).
+/// Paleta de cores e tokens visuais do Cyber Arena (Cyberpunk High-Tech Neon).
 class AppColors {
   AppColors._();
 
@@ -27,12 +27,15 @@ class AppColors {
   static const Color coreAiGlow = Color(0x66BD00FF);
 
   // Recursos de Partida e Economia Legion TD
-  static const Color bandwidth = Color(0xFF00FF66); // Banda de Rede (Mana/Energia)
+  static const Color bandwidth =
+      Color(0xFF00FF66); // Banda de Rede (Mana/Energia)
   static const Color bandwidthGlow = Color(0x6600FF66);
-  static const Color cpuClock = Color(0xFFFFCC00); // Clock/CPU Cycles (Economia)
+  static const Color cpuClock =
+      Color(0xFFFFCC00); // Clock/CPU Cycles (Economia)
   static const Color cpuClockGlow = Color(0x66FFCC00);
   static const Color bitsGold = Color(0xFFFFCC00); // Bits (Ouro no Legion TD)
-  static const Color tokensLumber = Color(0xFFBD00FF); // Tokens (Cripto/Lumber no Legion TD)
+  static const Color tokensLumber =
+      Color(0xFFBD00FF); // Tokens (Cripto/Lumber no Legion TD)
   static const Color tokensLumberGlow = Color(0x66BD00FF);
 
   // Alertas e Status de Rede
@@ -42,11 +45,16 @@ class AppColors {
   static const Color statusRedirect = Color(0xFFBD00FF); // 301 Redirect
 
   // Unidades Táticas (Bastiões Defensivos)
-  static const Color bastionFirewall = Color(0xFFFF5500); // Laranja Coral (Tanque)
-  static const Color bastionProxy = Color(0xFF00D4FF);    // Ciano Neon (Curta Distância)
-  static const Color bastionVpn = Color(0xFF00FF88);      // Esmeralda Matrix (Buff em Área)
-  static const Color bastionIds = Color(0xFFBD00FF);      // Púrpura Neon (Sniper Longo Alcance)
-  static const Color bastionHoneypot = Color(0xFFFFCC00); // Âmbar Dourado (Controle / Slow)
+  static const Color bastionFirewall =
+      Color(0xFFFF5500); // Laranja Coral (Tanque)
+  static const Color bastionProxy =
+      Color(0xFF00D4FF); // Ciano Neon (Curta Distância)
+  static const Color bastionVpn =
+      Color(0xFF00FF88); // Esmeralda Matrix (Buff em Área)
+  static const Color bastionIds =
+      Color(0xFFBD00FF); // Púrpura Neon (Sniper Longo Alcance)
+  static const Color bastionHoneypot =
+      Color(0xFFFFCC00); // Âmbar Dourado (Controle / Slow)
 
   // Tipografia
   static const Color textPrimary = Color(0xFFF0F6FC);
@@ -79,7 +87,8 @@ class AppColors {
   );
 
   // Sombras Neon Glow
-  static List<BoxShadow> neonGlow(Color color, {double blur = 12, double spread = 1}) {
+  static List<BoxShadow> neonGlow(Color color,
+      {double blur = 12, double spread = 1}) {
     return [
       BoxShadow(
         color: color.withValues(alpha: 0.5),

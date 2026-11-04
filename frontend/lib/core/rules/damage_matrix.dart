@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-/// Elementos da Natureza aplicados ao sistema de combate e blindagem do PromptSec Arena.
+/// Elementos da Natureza aplicados ao sistema de combate e blindagem do Cyber Arena.
 enum CombatElement {
-  fire,     // Fogo: térmico, agressivo, sobrecarga
-  water,    // Água: resfriamento dinâmico, fluxo
-  earth,    // Terra: blindagem de silício, aterramento
-  air,      // Ar: radiofrequência, dispersão, rajadas rápidas
+  fire, // Fogo: térmico, agressivo, sobrecarga
+  water, // Água: resfriamento dinâmico, fluxo
+  earth, // Terra: blindagem de silício, aterramento
+  air, // Ar: radiofrequência, dispersão, rajadas rápidas
   mainframe // Núcleo central: neutro/balanceado
 }
 
@@ -85,29 +85,36 @@ class DamageMatrix {
   /// Retorna o multiplicador de dano baseado no elemento de ataque vs elemento de blindagem
   static double getMultiplier(CombatElement attack, CombatElement defense) {
     // Mainframe Core recebe dano base neutro (100%) de todos os elementos
-    if (defense == CombatElement.mainframe || attack == CombatElement.mainframe) {
+    if (defense == CombatElement.mainframe ||
+        attack == CombatElement.mainframe) {
       return neutral;
     }
 
     switch (attack) {
       case CombatElement.fire:
-        if (defense == CombatElement.air) return advantage;       // Fogo consome Ar
-        if (defense == CombatElement.water) return disadvantage;  // Água apaga Fogo
+        if (defense == CombatElement.air) return advantage; // Fogo consome Ar
+        if (defense == CombatElement.water)
+          return disadvantage; // Água apaga Fogo
         return neutral;
 
       case CombatElement.water:
-        if (defense == CombatElement.fire) return advantage;      // Água apaga Fogo
-        if (defense == CombatElement.earth) return disadvantage; // Terra absorve Água
+        if (defense == CombatElement.fire) return advantage; // Água apaga Fogo
+        if (defense == CombatElement.earth)
+          return disadvantage; // Terra absorve Água
         return neutral;
 
       case CombatElement.earth:
-        if (defense == CombatElement.water) return advantage;     // Terra absorve Água
-        if (defense == CombatElement.air) return disadvantage;    // Ar desgasta Terra
+        if (defense == CombatElement.water)
+          return advantage; // Terra absorve Água
+        if (defense == CombatElement.air)
+          return disadvantage; // Ar desgasta Terra
         return neutral;
 
       case CombatElement.air:
-        if (defense == CombatElement.earth) return advantage;     // Ar desgasta Terra
-        if (defense == CombatElement.fire) return disadvantage;   // Fogo queima com Ar
+        if (defense == CombatElement.earth)
+          return advantage; // Ar desgasta Terra
+        if (defense == CombatElement.fire)
+          return disadvantage; // Fogo queima com Ar
         return neutral;
 
       case CombatElement.mainframe:

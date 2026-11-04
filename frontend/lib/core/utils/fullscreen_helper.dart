@@ -6,14 +6,15 @@ import 'fullscreen_helper_stub.dart'
 class FullscreenHelper {
   FullscreenHelper._();
 
-  /// Inicializa a tela cheia padrão (ativa ouvintes para primeiro clique na Web e imersão no Mobile/Desktop).
-  /// Quando kDebugMode for true, não inicializa em tela cheia e maximiza a janela apenas.
+  /// Inicializa o modo de exibição padrão.
+  /// Se autoFullscreen estiver desativado (padrão), garante modo janela maximizada sem tela cheia exclusiva.
   static void initDefaultFullscreen() {
-    if (kDebugMode) {
+    if (isAutoFullscreen) {
+      platform.initPlatformDefaultFullscreen();
+    } else {
+      exitFullscreen();
       maximize();
-      return;
     }
-    platform.initPlatformDefaultFullscreen();
   }
 
   /// Maximiza a janela na área de trabalho sem entrar em tela cheia exclusiva.

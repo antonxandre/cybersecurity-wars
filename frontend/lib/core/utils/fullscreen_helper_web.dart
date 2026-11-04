@@ -4,15 +4,15 @@ import 'dart:html' as html;
 bool _autoFullscreenListenerRegistered = false;
 
 /// Inicializa o comportamento de tela cheia padrão na Web.
-/// Como os navegadores exigem gesto do usuário para requestFullscreen(),
-/// registramos ouvintes de primeiro toque/clique para disparar automaticamente
-/// quando a preferência estiver ativa (padrão: true).
+/// Por padrão, a tela cheia automática é desativada para manter a navegação padrão em janela.
 void initPlatformDefaultFullscreen() {
+  if (!getPlatformAutoFullscreen()) {
+    exitPlatformFullscreen();
+    return;
+  }
+
   if (_autoFullscreenListenerRegistered) return;
   _autoFullscreenListenerRegistered = true;
-
-  final autoEnabled = getPlatformAutoFullscreen();
-  if (!autoEnabled) return;
 
   void onFirstUserInteraction(html.Event event) {
     if (getPlatformAutoFullscreen()) {
@@ -64,8 +64,8 @@ bool isPlatformFullscreen() {
 
 bool getPlatformAutoFullscreen() {
   final stored = html.window.localStorage['cyberwars_fullscreen'];
-  // Padrão: true (ativado por padrão)
-  return stored != 'false';
+  // Padrão: false (desativado por padrão)
+  return stored == 'true';
 }
 
 void setPlatformAutoFullscreen(bool enabled) {

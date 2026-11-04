@@ -31,6 +31,6 @@ void main() {
 
     // Verifica a opção de tela cheia por padrão
     expect(find.text('Tela Cheia por Padrão (Fullscreen)'), findsOneWidget);
-    expect(find.text('PADRÃO ATIVADO'), findsOneWidget);
+    expect(find.text('MANUAL'), findsOneWidget);
   });
 }

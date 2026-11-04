@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 import 'app_typography.dart';
 
-/// Tema global escuro e estilos de componentes para o PromptSec Arena.
+/// Tema global escuro e estilos de componentes para o Cyber Arena.
 class AppTheme {
   AppTheme._();
 
