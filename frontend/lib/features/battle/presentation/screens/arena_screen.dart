@@ -609,6 +609,11 @@ class _ArenaScreenState extends State<ArenaScreen> {
             valueListenable: _viewModel.state,
             builder: (context, state, child) {
               final isCriticalAlert = state.mainframeBlue.hpPercentage <= 30.0;
+              final screenSize = MediaQuery.of(context).size;
+              // Margem inferior responsiva: 10% da altura da tela com piso de segurança de 156px
+              // para garantir que o chat nunca fique por baixo do VirusDispatcherDock (~148px)
+              final chatBottomMargin =
+                  (screenSize.height * 0.10).clamp(156.0, double.infinity);
 
               return Stack(
                 fit: StackFit.expand,
@@ -645,7 +650,7 @@ class _ArenaScreenState extends State<ArenaScreen> {
                   // 6. Painel Unificado de Operações Táticas (Minerador, Fila Ofensiva e Mainframe)
                   if (_activeTacticalTab != null)
                     Positioned(
-                      bottom: 125,
+                      bottom: chatBottomMargin,
                       right: 16,
                       child: TacticalOperationsPanel(
                         activeTab: _activeTacticalTab!,
@@ -661,40 +666,9 @@ class _ArenaScreenState extends State<ArenaScreen> {
                       ),
                     ),
 
-                  // 7. Chat Tático de Equipe e Global
+                  // 7. Toast Tático Flutuante (substitui a SnackBar sem sobrepor o dock)
                   Positioned(
-                    bottom: 125,
-                    left: 16,
-                    child: TacticalTeamChatWidget(
-                      key: _chatKey,
-                      messages: state.chatMessages,
-                      onExpandChanged: () {
-                        if (mounted) setState(() {});
-                      },
-                      onSendMessage: (text, channel) {
-                        final currentUser = AuthService.instance.currentUser;
-                        final senderName = currentUser?.username ?? 'Operador';
-                        _viewModel.sendChatMessage(
-                          text: text,
-                          channel: channel,
-                          senderName: senderName,
-                        );
-                        if (widget.matchId != null && widget.matchId!.isNotEmpty) {
-                          _arenaSocket?.sendChatMessage(
-                            matchId: widget.matchId!,
-                            text: text,
-                            channel: channel,
-                            senderName: senderName,
-                            senderTeam: currentUser?.isBlueTeam == true ? 'blue' : 'red',
-                          );
-                        }
-                      },
-                    ),
-                  ),
-
-                  // 8. Toast Tático Flutuante (substitui a SnackBar sem sobrepor o dock)
-                  Positioned(
-                    bottom: 125,
+                    bottom: chatBottomMargin,
                     left: 0,
                     right: 0,
                     child: Center(
@@ -705,7 +679,7 @@ class _ArenaScreenState extends State<ArenaScreen> {
                     ),
                   ),
 
-                  // 9. Dock Tático Inferior: Despacho de Vírus, Mineradores e Mainframe
+                  // 8. Dock Tático Inferior: Despacho de Vírus, Mineradores e Mainframe
                   Positioned(
                     bottom: 0,
                     left: 0,
@@ -738,6 +712,37 @@ class _ArenaScreenState extends State<ArenaScreen> {
                             ? null
                             : TacticalPanelTab.mainframe;
                       }),
+                    ),
+                  ),
+
+                  // 9. Chat Tático de Equipe e Global (posicionado acima do dock e com sobreposição segura)
+                  Positioned(
+                    bottom: chatBottomMargin,
+                    left: 16,
+                    child: TacticalTeamChatWidget(
+                      key: _chatKey,
+                      messages: state.chatMessages,
+                      onExpandChanged: () {
+                        if (mounted) setState(() {});
+                      },
+                      onSendMessage: (text, channel) {
+                        final currentUser = AuthService.instance.currentUser;
+                        final senderName = currentUser?.username ?? 'Operador';
+                        _viewModel.sendChatMessage(
+                          text: text,
+                          channel: channel,
+                          senderName: senderName,
+                        );
+                        if (widget.matchId != null && widget.matchId!.isNotEmpty) {
+                          _arenaSocket?.sendChatMessage(
+                            matchId: widget.matchId!,
+                            text: text,
+                            channel: channel,
+                            senderName: senderName,
+                            senderTeam: currentUser?.isBlueTeam == true ? 'blue' : 'red',
+                          );
+                        }
+                      },
                     ),
                   ),
 
