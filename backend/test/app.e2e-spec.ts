@@ -4,7 +4,7 @@ import request from 'supertest';
 import { App } from 'supertest/types.js';
 import { AppModule } from './../src/app.module.js';
 
-describe('PromptSec Arena API (e2e)', () => {
+describe('Cyber Arena API (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
@@ -21,7 +21,7 @@ describe('PromptSec Arena API (e2e)', () => {
       .get('/')
       .expect(200)
       .expect((res) => {
-        expect(res.body.title).toContain('PromptSec Arena API');
+        expect(res.body.title).toContain('Cyber Arena API');
         expect(res.body.status).toBe('online');
       });
   });

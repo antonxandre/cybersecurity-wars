@@ -16,7 +16,15 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    const { user } = context.switchToHttp().getRequest();
+    let user: any;
+    if (context.getType() === 'ws') {
+      const client = context.switchToWs().getClient();
+      user = client?.data?.user;
+    } else {
+      const request = context.switchToHttp().getRequest();
+      user = request?.user;
+    }
+
     if (!user || !user.role) {
       throw new ForbiddenException('Access denied: Authentication and specific role required (OWASP A01)');
     }

@@ -15,6 +15,7 @@ import { CreateMatchDto } from './dto/create-match.dto.js';
 import { SubmitPromptDto, SubmitPatchDto, UpdatePortRuleDto } from './dto/match-action.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { Public } from '../common/decorators/public.decorator.js';
+import { UserRole } from '../common/decorators/roles.decorator.js';
 
 @Controller('matches')
 @UseGuards(JwtAuthGuard)
@@ -29,7 +30,7 @@ export class MatchesController {
     const user = {
       sub: req.user.sub,
       username: req.user.username,
-      role: dto.joinAsTeam ?? req.user.role,
+      role: dto.joinAsTeam ?? UserRole.BLUE_TEAM,
     };
     const match = await this.matchesService.createMatch(dto.scenarioId, user, {
       customCode: dto.customCode,

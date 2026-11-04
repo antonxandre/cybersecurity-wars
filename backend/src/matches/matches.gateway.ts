@@ -12,17 +12,11 @@ import { JwtService } from '@nestjs/jwt';
 import { Logger } from '@nestjs/common';
 import { MatchesService } from './matches.service.js';
 import { UserRole } from '../common/decorators/roles.decorator.js';
+import { corsOriginCallback } from '../common/utils/cors.util.js';
 
 @WebSocketGateway({
   cors: {
-    origin: (origin: string, callback: (err: Error | null, allow?: boolean) => void) => {
-      const configured = (process.env.CORS_ORIGIN || '*').split(',').map((s) => s.trim());
-      if (configured.includes('*') || !origin || configured.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(null, false);
-      }
-    },
+    origin: corsOriginCallback,
     credentials: true,
   },
   namespace: '/arena',
@@ -61,16 +55,54 @@ export class MatchesGateway implements OnGatewayConnection, OnGatewayDisconnect 
     }
   }
 
-  handleDisconnect(client: Socket) {
+  async handleDisconnect(client: Socket) {
     this.logger.log(`Client disconnected: ${client.id}`);
+    const matchId = client.data?.matchId;
+    const username = client.data?.user?.username;
+    if (matchId && username && username !== 'anonymous_caster') {
+      try {
+        const updated = await this.matchesService.leaveMatch(matchId, username);
+        const rooms = this.getMatchRooms(matchId);
+        for (const r of rooms) {
+          this.server.to(r).emit('match:player_left', { user: username });
+        }
+        if (updated) {
+          this.broadcastRoomUpdated(updated);
+        }
+      } catch (err) {
+        this.logger.debug(`Erro ao processar desconexão do socket ${client.id}: ${String(err)}`);
+      }
+    }
+  }
+
+  private getMatchRooms(matchId: string, match?: any): Set<string> {
+    const rooms = new Set<string>();
+    if (matchId) {
+      rooms.add(`match:${matchId}`);
+      rooms.add(`match:${matchId.toUpperCase()}`);
+      rooms.add(`match:${matchId.toLowerCase()}`);
+    }
+    const id = match?.id;
+    if (id) {
+      rooms.add(`match:${id}`);
+      rooms.add(`match:${id.toUpperCase()}`);
+      rooms.add(`match:${id.toLowerCase()}`);
+    }
+    const code = match?.code;
+    if (code) {
+      rooms.add(`match:${code}`);
+      rooms.add(`match:${code.toUpperCase()}`);
+      rooms.add(`match:${code.toLowerCase()}`);
+    }
+    return rooms;
   }
 
   broadcastRoomUpdated(match: any) {
-    const code = match.code || match.id;
-    this.server.to(`match:${match.id}`).emit('match:room_updated', match);
-    this.server.to(`match:${code}`).emit('match:room_updated', match);
-    this.server.to(`match:${match.id}`).emit('match:state_changed', match);
-    this.server.to(`match:${code}`).emit('match:state_changed', match);
+    const rooms = this.getMatchRooms(match.id, match);
+    for (const r of rooms) {
+      this.server.to(r).emit('match:room_updated', match);
+      this.server.to(r).emit('match:state_changed', match);
+    }
     this.server.emit('lobby:room_updated', match);
   }
 
@@ -79,9 +111,11 @@ export class MatchesGateway implements OnGatewayConnection, OnGatewayDisconnect 
   }
 
   broadcastMatchStarted(matchId: string, match: any) {
-    const code = match.code || match.id;
-    this.server.to(`match:${matchId}`).emit('match:started', { matchId, match });
-    this.server.to(`match:${code}`).emit('match:started', { matchId: code, match });
+    const rooms = this.getMatchRooms(matchId, match);
+    const code = match.code || match.id || matchId;
+    for (const r of rooms) {
+      this.server.to(r).emit('match:started', { matchId: code, match });
+    }
     this.server.emit('lobby:room_updated', match);
   }
 
@@ -96,18 +130,15 @@ export class MatchesGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
     if (this.server) {
       this.server.emit('lobby:room_deleted', payload);
-      this.server.to(`match:${match.id}`).emit('match:expired', payload);
-      this.server.to(`match:${code}`).emit('match:expired', payload);
-      this.server.to(`match:${match.id}`).emit('match:deleted', payload);
-      this.server.to(`match:${code}`).emit('match:deleted', payload);
-
-      try {
-        this.server.in(`match:${match.id}`)?.socketsLeave(`match:${match.id}`);
-        if (code !== match.id) {
-          this.server.in(`match:${code}`)?.socketsLeave(`match:${code}`);
+      const rooms = this.getMatchRooms(match.id, match);
+      for (const r of rooms) {
+        this.server.to(r).emit('match:expired', payload);
+        this.server.to(r).emit('match:deleted', payload);
+        try {
+          this.server.in(r)?.socketsLeave(r);
+        } catch (err) {
+          this.logger.debug(`Erro ao desvincular sockets da sala excluída ${match.id}: ${String(err)}`);
         }
-      } catch (err) {
-        this.logger.debug(`Erro ao desvincular sockets da sala excluída ${match.id}: ${String(err)}`);
       }
     }
   }
@@ -117,22 +148,38 @@ export class MatchesGateway implements OnGatewayConnection, OnGatewayDisconnect 
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { matchId: string; team?: UserRole },
   ) {
-    const user = client.data.user;
+    let user = client.data.user;
+    if (!user) {
+      const token =
+        client.handshake.auth?.token ??
+        client.handshake.headers?.authorization?.split(' ')[1];
+      if (token) {
+        try {
+          user = await this.jwtService.verifyAsync(token, {
+            secret: process.env.JWT_ACCESS_SECRET || 'promptsec-arena-access-secret-key-32chars',
+          });
+          client.data.user = user;
+        } catch {
+          // anonymous
+        }
+      }
+    }
+    const safeUser = user || { sub: 0, username: 'anonymous_caster', role: UserRole.CASTER };
+
     const match = await this.matchesService.joinMatch(
       data.matchId,
-      { sub: user.sub, username: user.username, role: user.role },
+      { sub: safeUser.sub, username: safeUser.username, role: safeUser.role },
       data.team,
     );
 
-    const roomName = `match:${data.matchId}`;
-    const codeRoomName = `match:${match.code}`;
-    await client.join(roomName);
-    if (codeRoomName !== roomName) {
-      await client.join(codeRoomName);
+    const rooms = this.getMatchRooms(data.matchId, match);
+    for (const r of rooms) {
+      await client.join(r);
     }
+    client.data.matchId = match.id;
 
     this.broadcastRoomUpdated(match);
-    this.logger.log(`Socket ${client.id} joined match room ${roomName} (${user?.username})`);
+    this.logger.log(`Socket ${client.id} joined match room match:${match.id} (${safeUser.username})`);
     return { success: true, match };
   }
 
@@ -221,9 +268,11 @@ export class MatchesGateway implements OnGatewayConnection, OnGatewayDisconnect 
     @MessageBody() data: { matchId: string; virus: Record<string, unknown> },
   ) {
     const user = client.data.user;
-    const roomName = `match:${data.matchId}`;
-    client.to(roomName).emit('opponent:viruses_queued', [data.virus]);
-    this.logger.log(`Tactical virus sent by ${user?.username ?? 'operator'} in room ${roomName}`);
+    const rooms = this.getMatchRooms(data.matchId);
+    for (const r of rooms) {
+      client.to(r).emit('opponent:viruses_queued', [data.virus]);
+    }
+    this.logger.log(`Tactical virus sent by ${user?.username ?? 'operator'} in rooms ${Array.from(rooms).join(', ')}`);
     return { success: true };
   }
 
@@ -233,7 +282,7 @@ export class MatchesGateway implements OnGatewayConnection, OnGatewayDisconnect 
     @MessageBody() data: { matchId: string; channel?: string; text: string; senderName?: string; senderTeam?: string },
   ) {
     const user = client.data.user;
-    const roomName = `match:${data.matchId}`;
+    const rooms = this.getMatchRooms(data.matchId);
     const message = {
       id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       channel: data.channel ?? 'team',
@@ -242,7 +291,9 @@ export class MatchesGateway implements OnGatewayConnection, OnGatewayDisconnect 
       text: data.text,
       timestamp: new Date().toISOString(),
     };
-    this.server.to(roomName).emit('chat:message', message);
+    for (const r of rooms) {
+      this.server.to(r).emit('chat:message', message);
+    }
     return { success: true, message };
   }
 
@@ -252,13 +303,15 @@ export class MatchesGateway implements OnGatewayConnection, OnGatewayDisconnect 
     @MessageBody() data: { matchId: string; type: string; payload: Record<string, unknown> },
   ) {
     const user = client.data.user;
-    const roomName = `match:${data.matchId}`;
-    this.server.to(roomName).emit('tactical:action_applied', {
-      user: user?.username ?? 'operator',
-      type: data.type,
-      payload: data.payload,
-      timestamp: Date.now(),
-    });
+    const rooms = this.getMatchRooms(data.matchId);
+    for (const r of rooms) {
+      client.to(r).emit('tactical:action_applied', {
+        user: user?.username ?? 'operator',
+        type: data.type,
+        payload: data.payload,
+        timestamp: Date.now(),
+      });
+    }
     return { success: true };
   }
 
@@ -267,12 +320,17 @@ export class MatchesGateway implements OnGatewayConnection, OnGatewayDisconnect 
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { matchId: string },
   ) {
-    const roomName = `match:${data.matchId}`;
-    await client.leave(roomName);
+    const rooms = this.getMatchRooms(data.matchId);
+    for (const r of rooms) {
+      await client.leave(r);
+    }
+    client.data.matchId = undefined;
     const updated = await this.matchesService.leaveMatch(data.matchId, client.data.user?.username);
-    this.server.to(roomName).emit('match:player_left', {
-      user: client.data.user?.username,
-    });
+    for (const r of rooms) {
+      this.server.to(r).emit('match:player_left', {
+        user: client.data.user?.username,
+      });
+    }
     if (updated) {
       this.broadcastRoomUpdated(updated);
     }

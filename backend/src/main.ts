@@ -3,6 +3,7 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module.js';
+import { corsOriginCallback } from './common/utils/cors.util.js';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -22,6 +23,7 @@ async function bootstrap() {
         },
       },
       crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
       frameguard: { action: 'deny' },
       hsts: {
         maxAge: 63072000, // 2 years
@@ -35,22 +37,8 @@ async function bootstrap() {
   app.use(cookieParser());
 
   // 3. CORS Configuration
-  const allowedOrigins = process.env.CORS_ORIGIN
-    ? process.env.CORS_ORIGIN.split(',')
-    : ['http://localhost:8080', 'http://127.0.0.1:8080', 'http://localhost:3000'];
-
   app.enableCors({
-    origin: (
-      origin: string | undefined,
-      callback: (err: Error | null, allow?: boolean) => void,
-    ) => {
-      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server) or in whitelist
-      if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
-        callback(null, true);
-      } else {
-        callback(new Error('CORS policy violation'));
-      }
-    },
+    origin: corsOriginCallback,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
@@ -76,7 +64,7 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  logger.log(`PromptSec Arena API running on http://localhost:${port}/api`);
+  logger.log(`Cyber Arena API running on http://localhost:${port}/api`);
   logger.log(`WebSocket Gateway active at ws://localhost:${port}/arena`);
 }
 

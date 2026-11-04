@@ -7,7 +7,7 @@ export class AppController {
   @Get()
   getRoot() {
     return {
-      title: 'PromptSec Arena API (CyberWars)',
+      title: 'Cyber Arena API (CyberWars)',
       version: '1.0.0',
       description: 'Plataforma gamificada de Capture The Flag para Segurança de LLMs e Redes',
       endpoints: {

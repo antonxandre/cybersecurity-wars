@@ -13,9 +13,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);
 
   catch(exception: unknown, host: ArgumentsHost) {
+    if (host.getType() !== 'http') {
+      return;
+    }
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
+    if (!response || !request) {
+      return;
+    }
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message: string | object = 'Internal server error';
@@ -25,11 +31,17 @@ export class AllExceptionsFilter implements ExceptionFilter {
       const res = exception.getResponse();
       message = typeof res === 'object' && (res as any).message ? (res as any).message : res;
     } else if (exception instanceof Error) {
-      this.logger.error(`Unhandled Exception at ${request.method} ${request.url}: ${exception.message}`, exception.stack);
-      // Security: never leak database details or raw stack traces in production (OWASP A01 / A03)
-      message = process.env.NODE_ENV === 'production' 
-        ? 'An unexpected error occurred. Please try again later.' 
-        : exception.message;
+      if (exception.message.toLowerCase().includes('cors')) {
+        status = HttpStatus.FORBIDDEN;
+        this.logger.warn(`CORS blocked request at ${request.method} ${request.url}: ${exception.message}`);
+        message = 'CORS request rejected: Origin not allowed';
+      } else {
+        this.logger.error(`Unhandled Exception at ${request.method} ${request.url}: ${exception.message}`, exception.stack);
+        // Security: never leak database details or raw stack traces in production (OWASP A01 / A03)
+        message = process.env.NODE_ENV === 'production' 
+          ? 'An unexpected error occurred. Please try again later.' 
+          : exception.message;
+      }
     }
 
     response.status(status).json({

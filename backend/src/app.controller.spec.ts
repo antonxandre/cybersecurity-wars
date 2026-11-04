@@ -15,7 +15,7 @@ describe('AppController', () => {
   describe('root', () => {
     it('should return API banner info', () => {
       const banner = appController.getRoot();
-      expect(banner.title).toBe('PromptSec Arena API (CyberWars)');
+      expect(banner.title).toBe('Cyber Arena API (CyberWars)');
       expect(banner.status).toBe('online');
       expect(banner.endpoints).toHaveProperty('health');
     });

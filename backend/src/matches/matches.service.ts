@@ -17,6 +17,8 @@ export interface MatchSession {
   status: 'WAITING' | 'IN_PROGRESS' | 'FINISHED' | 'CANCELLED';
   redPlayer?: { id: number; username: string };
   bluePlayer?: { id: number; username: string };
+  redPlayers?: Array<{ id: number; username: string }>;
+  bluePlayers?: Array<{ id: number; username: string }>;
   casters: Array<{ id: number; username: string }>;
   hostUsername?: string;
   is2v2?: boolean;
@@ -53,10 +55,24 @@ export class MatchesService {
 
   constructor(private readonly scenariosService: ScenariosService) {}
 
-  formatMatch(match: MatchSession) {
+  formatMatch(match: MatchSession, includeSecrets = false) {
     const playerNames: string[] = [];
-    if (match.bluePlayer) playerNames.push(match.bluePlayer.username);
-    if (match.redPlayer) playerNames.push(match.redPlayer.username);
+    if (match.bluePlayers && match.bluePlayers.length > 0) {
+      for (const p of match.bluePlayers) {
+        if (!playerNames.includes(p.username)) playerNames.push(p.username);
+      }
+    } else if (match.bluePlayer) {
+      playerNames.push(match.bluePlayer.username);
+    }
+
+    if (match.redPlayers && match.redPlayers.length > 0) {
+      for (const p of match.redPlayers) {
+        if (!playerNames.includes(p.username)) playerNames.push(p.username);
+      }
+    } else if (match.redPlayer) {
+      playerNames.push(match.redPlayer.username);
+    }
+
     for (const c of match.casters) {
       if (!playerNames.includes(c.username)) {
         playerNames.push(c.username);
@@ -72,8 +88,11 @@ export class MatchesService {
     const maxPlayers = match.maxPlayers ?? (is2v2 ? 4 : 2);
     const mode = match.mode ?? match.scenarioTitle ?? (is2v2 ? '2v2 Duplas' : '1v1 Duelo');
 
+    // OWASP A01: Não vazar a flag nem o system prompt interno antes da captura da flag
+    const { flag, systemPrompt, ...safeMatch } = match;
+
     return {
-      ...match,
+      ...safeMatch,
       code: match.code || match.id,
       host: hostUsername,
       hostUsername,
@@ -83,6 +102,7 @@ export class MatchesService {
       maxPlayers,
       playerNames,
       ping: 20,
+      flag: match.flagCaptured || includeSecrets ? match.flag : undefined,
     };
   }
 
@@ -98,6 +118,8 @@ export class MatchesService {
     const is2v2 = options?.is2v2 ?? true;
     const mode = options?.mode || (is2v2 ? '2v2 Duplas' : '1v1 Duelo');
     const maxPlayers = is2v2 ? 4 : 2;
+
+    const creator = { id: user.sub, username: user.username };
 
     const match: MatchSession = {
       id: matchId,
@@ -119,17 +141,19 @@ export class MatchesService {
       turnCount: 0,
       maxTurns: 10,
       events: [],
+      bluePlayers: [],
+      redPlayers: [],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
     // Auto-join creator according to role
-    if (user.role === UserRole.BLUE_TEAM) {
-      match.bluePlayer = { id: user.sub, username: user.username };
-    } else if (user.role === UserRole.RED_TEAM) {
-      match.redPlayer = { id: user.sub, username: user.username };
+    if (user.role === UserRole.RED_TEAM) {
+      match.redPlayer = creator;
+      match.redPlayers = [creator];
     } else {
-      match.bluePlayer = { id: user.sub, username: user.username };
+      match.bluePlayer = creator;
+      match.bluePlayers = [creator];
     }
 
     this.matches.set(matchId, match);
@@ -242,38 +266,87 @@ export class MatchesService {
   async joinMatch(matchId: string, user: { sub: number; username: string; role: UserRole }, teamChoice?: UserRole) {
     const match = await this.getMatch(matchId);
 
+    match.bluePlayers = match.bluePlayers ?? (match.bluePlayer ? [match.bluePlayer] : []);
+    match.redPlayers = match.redPlayers ?? (match.redPlayer ? [match.redPlayer] : []);
+
+    const maxTeamSlots = match.is2v2 ? 2 : 1;
     let targetTeam = teamChoice ?? user.role;
 
-    if (targetTeam === UserRole.BLUE_TEAM && match.bluePlayer && match.bluePlayer.id !== user.sub) {
-      if (!match.redPlayer) {
+    // Se teamChoice não foi especificado e o usuário já está alocado em um time, preserva o time atual
+    if (!teamChoice) {
+      if (match.bluePlayers.some((p) => p.id === user.sub)) {
+        targetTeam = UserRole.BLUE_TEAM;
+      } else if (match.redPlayers.some((p) => p.id === user.sub)) {
         targetTeam = UserRole.RED_TEAM;
       }
-    } else if (targetTeam === UserRole.RED_TEAM && match.redPlayer && match.redPlayer.id !== user.sub) {
-      if (!match.bluePlayer) {
+    }
+
+    // Auto-balanceamento se o time escolhido estiver lotado
+    if (targetTeam === UserRole.BLUE_TEAM && match.bluePlayers.length >= maxTeamSlots && !match.bluePlayers.some((p) => p.id === user.sub)) {
+      if (match.redPlayers.length < maxTeamSlots) {
+        targetTeam = UserRole.RED_TEAM;
+      }
+    } else if (targetTeam === UserRole.RED_TEAM && match.redPlayers.length >= maxTeamSlots && !match.redPlayers.some((p) => p.id === user.sub)) {
+      if (match.bluePlayers.length < maxTeamSlots) {
         targetTeam = UserRole.BLUE_TEAM;
       }
     }
 
+    const playerObj = { id: user.sub, username: user.username };
+
     if (targetTeam === UserRole.BLUE_TEAM) {
-      if (match.bluePlayer && match.bluePlayer.id !== user.sub && !match.is2v2) {
-        throw new ConflictException('Blue Team position already filled for this match');
+      // Remove do outro time se estiver presente (evita o mesmo usuário ocupando dois times simultaneamente)
+      match.redPlayers = match.redPlayers.filter((p) => p.id !== user.sub);
+      match.casters = match.casters.filter((c) => c.id !== user.sub);
+      if (match.redPlayer?.id === user.sub) {
+        match.redPlayer = match.redPlayers[0];
       }
-      match.bluePlayer = { id: user.sub, username: user.username };
+
+      if (!match.bluePlayers.some((p) => p.id === user.sub)) {
+        if (match.bluePlayers.length >= maxTeamSlots) {
+          throw new ConflictException('Posição do Time Azul já preenchida para esta partida');
+        }
+        match.bluePlayers.push(playerObj);
+      }
+      match.bluePlayer = match.bluePlayers[0];
     } else if (targetTeam === UserRole.RED_TEAM) {
-      if (match.redPlayer && match.redPlayer.id !== user.sub && !match.is2v2) {
-        throw new ConflictException('Red Team position already filled for this match');
+      // Remove do outro time se estiver presente
+      match.bluePlayers = match.bluePlayers.filter((p) => p.id !== user.sub);
+      match.casters = match.casters.filter((c) => c.id !== user.sub);
+      if (match.bluePlayer?.id === user.sub) {
+        match.bluePlayer = match.bluePlayers[0];
       }
-      match.redPlayer = { id: user.sub, username: user.username };
+
+      if (!match.redPlayers.some((p) => p.id === user.sub)) {
+        if (match.redPlayers.length >= maxTeamSlots) {
+          throw new ConflictException('Posição do Time Vermelho já preenchida para esta partida');
+        }
+        match.redPlayers.push(playerObj);
+      }
+      match.redPlayer = match.redPlayers[0];
     } else {
       if (!match.casters.some((c) => c.id === user.sub)) {
-        match.casters.push({ id: user.sub, username: user.username });
+        match.casters.push(playerObj);
       }
     }
 
-    // Start match if both players joined
-    if (match.bluePlayer && match.redPlayer && match.status === 'WAITING') {
+    // Inicia a partida se ambos os times tiverem jogadores distintos
+    if (
+      match.bluePlayer &&
+      match.redPlayer &&
+      match.bluePlayer.id !== match.redPlayer.id &&
+      match.status === 'WAITING'
+    ) {
       match.status = 'IN_PROGRESS';
-      this.addEvent(match, UserRole.ADMIN, 'System', 'MATCH_START', 'Ambos os times conectaram. Partida iniciada!', 0, 0);
+      this.addEvent(
+        match,
+        UserRole.ADMIN,
+        'System',
+        'MATCH_START',
+        'Ambos os times conectaram. Partida iniciada!',
+        0,
+        0,
+      );
     }
 
     match.updatedAt = new Date();
@@ -305,13 +378,27 @@ export class MatchesService {
     }
 
     if (username) {
-      if (match.bluePlayer?.username === username) {
-        delete match.bluePlayer;
+      match.bluePlayers = (match.bluePlayers ?? []).filter((p) => p.username !== username);
+      match.redPlayers = (match.redPlayers ?? []).filter((p) => p.username !== username);
+      match.casters = (match.casters ?? []).filter((c) => c.username !== username);
+
+      match.bluePlayer = match.bluePlayers[0];
+      match.redPlayer = match.redPlayers[0];
+
+      if (match.hostUsername === username) {
+        const nextHost =
+          match.bluePlayer?.username ??
+          match.redPlayer?.username ??
+          match.casters[0]?.username;
+        if (nextHost) {
+          match.hostUsername = nextHost;
+        }
       }
-      if (match.redPlayer?.username === username) {
-        delete match.redPlayer;
+
+      // Se a partida não teve ações reais (turnCount == 0) e perdeu o oponente, volta para WAITING
+      if (match.turnCount === 0 && (!match.bluePlayer || !match.redPlayer)) {
+        match.status = 'WAITING';
       }
-      match.casters = match.casters.filter((c) => c.username !== username);
     }
     match.updatedAt = new Date();
     return this.formatMatch(match);
