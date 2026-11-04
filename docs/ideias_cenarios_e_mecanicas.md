@@ -1,7 +1,7 @@
 # 💡 Proposta de Expansão: Ideias, Novos Cenários e Mecânicas de Jogo
 
 > **Documento de Especificação Conceitual e Mecânicas de Jogo**  
-> **Projeto:** PromptSec Arena / CyberWars  
+> **Projeto:** Cyber Arena / CyberWars  
 > **Data:** Outubro de 2026  
 > **Status:** Em Planejamento / Proposta de Evolução  
 

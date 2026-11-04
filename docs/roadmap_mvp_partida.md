@@ -1,7 +1,7 @@
 # 🗺️ Roadmap Técnico: MVP de Partida Single-Player (Offline)
 
 > **Documento de Planejamento e Decomposição de Tarefas (Backlog)**  
-> **Projeto:** PromptSec Arena (CyberWars Frontend)  
+> **Projeto:** Cyber Arena (CyberWars Frontend)  
 > **Objetivo:** Viabilizar uma partida completa jogável localmente (Sem necessidade de WebSockets/Backend), cobrindo do Turno Zero (Legion TD) ao Combate em Tempo Real (Clash Royale), Seleção de Perks (Archero) e Telas de Vitória/Derrota.  
 > **Data:** Outubro de 2026  
 > **Status:** Em Execução / Prioridade Máxima  

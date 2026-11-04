@@ -1,4 +1,4 @@
-name: CI/CD Pipeline - PromptSec Arena (GCP Deploy)
+name: CI/CD Pipeline - Cyber Arena (GCP Deploy)
 
 on:
   push:

@@ -1,12 +1,12 @@
-# 📜 Regras Oficiais do Jogo - PromptSec Arena (CyberWars)
+# 📜 Regras Oficiais do Jogo - Cyber Arena (CyberWars)
 
-Este documento estabelece as regras canônicas de jogabilidade, economia, estrutura do tabuleiro top-down, mecânicas de combate elemental e fluxo de partida do **PromptSec Arena** (modo híbrido Legion TD / RTS competitivo 4v4).
+Este documento estabelece as regras canônicas de jogabilidade, economia, estrutura do tabuleiro top-down, mecânicas de combate elemental e fluxo de partida do **Cyber Arena** (modo híbrido Legion TD / RTS competitivo 4v4).
 
 ---
 
 ## 🏛️ 1. Visão Geral da Partida
 
-PromptSec Arena é uma batalha tática entre duas equipes de 4 jogadores:
+Cyber Arena é uma batalha tática entre duas equipes de 4 jogadores:
 * 🔵 **Time Aliado (Blue Team / Defensores do Core)**
 * 🔴 **Time Adversário (Red Team / Oponentes)**
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# PromptSec Arena - Script de Atualização Direto na VM (GCP)
+# Cyber Arena - Script de Atualização Direto na VM (GCP)
 # ==============================================================================
 # Execute este script diretamente no terminal da VM:
 # cd ~/app && ./update-vm.sh
@@ -15,7 +15,7 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 echo -e "${CYAN}=====================================================${NC}"
-echo -e "${CYAN}🔄 PromptSec Arena - Atualizando VM de Produção      ${NC}"
+echo -e "${CYAN}🔄 Cyber Arena - Atualizando VM de Produção      ${NC}"
 echo -e "${CYAN}=====================================================${NC}"
 
 cd ~/app

@@ -1,12 +1,12 @@
-# 🤖 Guia dos Agentes de IA - PromptSec Arena (AGENTS.md)
+# 🤖 Guia dos Agentes de IA - Cyber Arena (AGENTS.md)
 
-Este documento estabelece as diretrizes de engenharia, arquitetura de software, catálogo de skills e protocolos de segurança para agentes de IA atuando no repositório **PromptSec Arena** (também referenciado como **CyberWars**).
+Este documento estabelece as diretrizes de engenharia, arquitetura de software, catálogo de skills e protocolos de segurança para agentes de IA atuando no repositório **Cyber Arena** (também referenciado como **CyberWars**).
 
 ---
 
 ## 🎯 1. Visão Geral e Identidade do Projeto
 
-**PromptSec Arena** é uma plataforma open-source e gamificada de Capture The Flag (CTF) focada em **Segurança de Modelos de Linguagem (LLMs)** e **Segurança Ofensiva/Defensiva de Redes & Infraestrutura Multicamadas**.
+**Cyber Arena** é uma plataforma open-source e gamificada de Capture The Flag (CTF) focada em **Segurança de Modelos de Linguagem (LLMs)** e **Segurança Ofensiva/Defensiva de Redes & Infraestrutura Multicamadas**.
 
 O projeto simula batalhas PvP em tempo real entre:
 * 🔴 **Red Team (Ataque):** Executa ataques de prompt injection (Jailbreak, Prompt Leaking, System Prompt Extraction), escaneamento de portas, bypass de regras de firewall e quebra de chaves criptográficas parciais para capturar a flag (`FLAG{...}`).

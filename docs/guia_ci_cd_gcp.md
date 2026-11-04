@@ -1,6 +1,6 @@
 # 🚀 Guia de Configuração da Pipeline CI/CD no GitHub Actions (Deploy GCP)
 
-Este documento orienta a configuração e execução da esteira automatizada de Integração e Entrega Contínua (**CI/CD**) do **PromptSec Arena** para a máquina virtual no **Google Cloud Platform (GCP)**.
+Este documento orienta a configuração e execução da esteira automatizada de Integração e Entrega Contínua (**CI/CD**) do **Cyber Arena** para a máquina virtual no **Google Cloud Platform (GCP)**.
 
 ---
 
@@ -102,7 +102,7 @@ Cole exatamente todo o conteúdo (incluindo as linhas `-----BEGIN OPENSSH PRIVAT
    ```
 2. **Via Interface Web (Manual):**
    * Vá até a aba **Actions** no GitHub.
-   * Selecione **CI/CD Pipeline - PromptSec Arena (GCP Deploy)** no menu lateral esquerdo.
+   * Selecione **CI/CD Pipeline - Cyber Arena (GCP Deploy)** no menu lateral esquerdo.
    * Clique em **Run workflow** > Selecione a branch `main` > **Run workflow**.
 
 3. **Acompanhamento dos Logs:**

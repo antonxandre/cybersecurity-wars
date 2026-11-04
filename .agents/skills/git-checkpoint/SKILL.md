@@ -1,13 +1,13 @@
 ---
 name: git-checkpoint
-description: Best practices for atomic, semantic Git commits and checkpoints in the PromptSec Arena repository. Enforces conventional commit standards, secret leak prevention, and pre-commit verification.
+description: Best practices for atomic, semantic Git commits and checkpoints in the Cyber Arena repository. Enforces conventional commit standards, secret leak prevention, and pre-commit verification.
 metadata:
   model: models/gemini-3.8-flash
   last_modified: Sat, 24 Oct 2026 14:44:00 GMT
 ---
 # 🔖 Git Checkpoint: Diretrizes e Protocolo de Commits
 
-Este guia padroniza o fluxo de versionamento, checkpoints de código e commits atômicos no repositório **PromptSec Arena (CyberWars)**, respeitando as diretrizes do **Eixo 2 (DevSecOps)**.
+Este guia padroniza o fluxo de versionamento, checkpoints de código e commits atômicos no repositório **Cyber Arena (CyberWars)**, respeitando as diretrizes do **Eixo 2 (DevSecOps)**.
 
 ---
 

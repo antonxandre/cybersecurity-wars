@@ -1,6 +1,6 @@
 # 🛡️ Especificação e Plano de Implementação: Arena Multiplayer Legion TD (CyberWars)
 
-Este documento define o novo design central e o plano de implementação técnica da **PromptSec Arena** focado na experiência **Multiplayer 2v2 / 1v1 estilo Legion TD (Warcraft 3)** adaptada para cibersegurança.
+Este documento define o novo design central e o plano de implementação técnica da **Cyber Arena** focado na experiência **Multiplayer 2v2 / 1v1 estilo Legion TD (Warcraft 3)** adaptada para cibersegurança.
 
 ---
 

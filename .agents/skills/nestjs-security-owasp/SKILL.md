@@ -5,7 +5,7 @@ description: Implements OWASP Top 10:2025 security defenses in NestJS, specifica
 
 # NestJS Security & OWASP Top 10:2025 Safeguards
 
-This skill defines mandatory security standards and implementation patterns for the PromptSec Arena backend, aligning directly with the project guidelines.
+This skill defines mandatory security standards and implementation patterns for the Cyber Arena backend, aligning directly with the project guidelines.
 
 ## 1. OWASP A01:2025 - Broken Access Control
 

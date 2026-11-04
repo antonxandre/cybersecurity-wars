@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# PromptSec Arena - Script de Deploy Automatizado (Local -> GCP)
+# Cyber Arena - Script de Deploy Automatizado (Local -> GCP)
 # ==============================================================================
 # Este script automatiza o ciclo completo de deploy da sua máquina local para a VM:
 # 1. Compila o Flutter Web localmente em release
@@ -101,7 +101,7 @@ if [ -n "$SSH_KEY" ]; then
 fi
 
 echo -e "${CYAN}=====================================================${NC}"
-echo -e "${CYAN}🚀 PromptSec Arena - Início do Deploy no GCP        ${NC}"
+echo -e "${CYAN}🚀 Cyber Arena - Início do Deploy no GCP        ${NC}"
 echo -e "${CYAN}=====================================================${NC}"
 echo -e "Alvo:    ${YELLOW}${VM_USER}@${VM_HOST}${NC}"
 echo -e "Destino: ${YELLOW}${REMOTE_DIR}${NC}"

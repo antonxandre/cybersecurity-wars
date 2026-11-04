@@ -1,4 +1,4 @@
-# 🕹️ Especificação Técnica do Frontend: PromptSec Arena (CyberWars)
+# 🕹️ Especificação Técnica do Frontend: Cyber Arena (CyberWars)
 
 > **Documento de Arquitetura e Startup de Engenharia Frontend**  
 > **Framework:** Flutter 3.x (Web & Mobile)  
@@ -11,7 +11,7 @@
 
 ## 🎯 1. Visão Geral e Identidade do Jogo
 
-O frontend do **PromptSec Arena** é concebido como uma arena tática de cibersegurança em tempo real com formato *mobile-like* responsivo (ótima jogabilidade em telas verticais de smartphone e adaptada para navegadores desktop com moldura tática centralizada).
+O frontend do **Cyber Arena** é concebido como uma arena tática de cibersegurança em tempo real com formato *mobile-like* responsivo (ótima jogabilidade em telas verticais de smartphone e adaptada para navegadores desktop com moldura tática centralizada).
 
 O jogo transforma conceitos abstratos de segurança cibernética (regras de firewall, injeção de prompts em LLMs, ataques de força bruta, túneis VPN e certificados pós-quânticos) em batalhas dinâmicas, intuitivas e viciantes.
 

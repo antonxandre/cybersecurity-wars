@@ -1,11 +1,11 @@
 ---
 name: nestjs-websocket-gateway
-description: Real-time multiplayer synchronization, Socket.IO WebSockets, match rooms, JWT handshake validation, and turn-based event broadcasting in NestJS. Use when building or updating match gateways, live telemetry, and multiplayer state in PromptSec Arena.
+description: Real-time multiplayer synchronization, Socket.IO WebSockets, match rooms, JWT handshake validation, and turn-based event broadcasting in NestJS. Use when building or updating match gateways, live telemetry, and multiplayer state in Cyber Arena.
 ---
 
 # NestJS WebSocket Gateway & Real-Time Multiplayer Guide
 
-This skill governs the WebSocket architecture connecting Flutter Web clients with the NestJS backend for real-time PromptSec Arena matches.
+This skill governs the WebSocket architecture connecting Flutter Web clients with the NestJS backend for real-time Cyber Arena matches.
 
 ## 1. Gateway Setup & Handshake Authentication
 

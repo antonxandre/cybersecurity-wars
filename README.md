@@ -1,5 +1,5 @@
-🛡️ PromptSec Arena
-PromptSec Arena é uma plataforma open-source e gamificada de Capture The Flag (CTF) focada inteiramente em Segurança de LLMs (Large Language Models) e Engenharia de Prompts.
+🛡️ Cyber Arena
+Cyber Arena é uma plataforma open-source e gamificada de Capture The Flag (CTF) focada inteiramente em Segurança de LLMs (Large Language Models) e Engenharia de Prompts.
 
 Projetado para simular o caos de um ambiente cibernético real, o projeto coloca jogadores em batalhas PvP (Red Team vs. Blue Team) em tempo real, onde o objetivo é invadir ou proteger um LLM através de injeção de prompts e patches de segurança dinâmicos.
 

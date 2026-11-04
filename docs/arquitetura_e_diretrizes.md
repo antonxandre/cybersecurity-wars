@@ -1,12 +1,12 @@
-# 🏛️ Arquitetura e Diretrizes do Projeto - PromptSec Arena
+# 🏛️ Arquitetura e Diretrizes do Projeto - Cyber Arena
 
-Este documento detalha o desenho de arquitetura de software, infraestrutura de nuvem, segurança da informação e práticas de DevSecOps para o **PromptSec Arena**, alinhando o projeto às exigências da disciplina **Projeto Aplicado: Práticas de Mercado** e aos conceitos de *Secure by Design* e *Secure by Default*.
+Este documento detalha o desenho de arquitetura de software, infraestrutura de nuvem, segurança da informação e práticas de DevSecOps para o **Cyber Arena**, alinhando o projeto às exigências da disciplina **Projeto Aplicado: Práticas de Mercado** e aos conceitos de *Secure by Design* e *Secure by Default*.
 
 ---
 
 ## 🧭 Visão Geral dos Três Eixos
 
-O ecossistema do PromptSec Arena é estruturado a partir da integração contínua entre desenvolvimento, versionamento seguro e infraestrutura de nuvem com conteinerização:
+O ecossistema do Cyber Arena é estruturado a partir da integração contínua entre desenvolvimento, versionamento seguro e infraestrutura de nuvem com conteinerização:
 
 ```mermaid
 graph TD
@@ -150,14 +150,14 @@ O frontend é desenvolvido em **Flutter Web**, proporcionando uma interface resp
 2. **Página Interna - Arena de Jogo / Dashboard (`/arena`):**
    * Acessível **exclusivamente após autenticação bem-sucedida**.
    * Protegida por guards de navegação (*Route Guards* / middleware de autenticação).
-   * Exibe o painel do PromptSec Arena: visão do Red Team (injeção de prompt), Blue Team (patch dinâmico de system prompt) e barra de logprobs/tensão do LLM.
+   * Exibe o painel do Cyber Arena: visão do Red Team (injeção de prompt), Blue Team (patch dinâmico de system prompt) e barra de logprobs/tensão do LLM.
 3. **Botão de Logout Funcional:**
    * Ação explícita de encerramento de sessão.
    * Invalidação do token/sessão no cliente, limpeza do estado local de autenticação e redirecionamento imediato para a tela de login.
 
 ### 3.3 Mitigação de Vulnerabilidades OWASP Top 10:2025
 
-O código-fonte do PromptSec Arena implementa salvaguardas explícitas contra três categorias críticas do [OWASP Top 10:2025](https://owasp.org/Top10/2025/):
+O código-fonte do Cyber Arena implementa salvaguardas explícitas contra três categorias críticas do [OWASP Top 10:2025](https://owasp.org/Top10/2025/):
 
 | Categoria OWASP | Descrição da Ameaça no Contexto do Projeto | Estratégia de Mitigação Implementada |
 | :--- | :--- | :--- |
@@ -194,7 +194,7 @@ sequenceDiagram
 
 ### Exemplo de Workflow do GitHub Actions (`.github/workflows/deploy.yml`)
 ```yaml
-name: CI/CD Pipeline - PromptSec Arena
+name: CI/CD Pipeline - Cyber Arena
 
 on:
   push:
@@ -244,7 +244,7 @@ jobs:
 
 ## 📋 Resumo de Conformidade Técnica
 
-| Item | Diretriz da Disciplina | Solução Adotada no PromptSec Arena |
+| Item | Diretriz da Disciplina | Solução Adotada no Cyber Arena |
 | :--- | :--- | :--- |
 | **Eixo 1 (Cloud)** | Ubuntu Server/Debian + Nginx/Apache + IP público + Chaves SSH + Fail2Ban + SSL IP com Let's Encrypt + PQC | GCP Compute Engine (Ubuntu 24.04 LTS), Docker, Nginx, Certbot 5.4+ (IP público Let's Encrypt), Fail2Ban (4 erros, ban 24h), Suporte PQC ativo. |
 | **Eixo 2 (Repo)** | Repositório público, versionamento seguro, sem credenciais expostas, .gitignore adequado | GitHub Público, Secret Scanning, Push Protection, Branch Protection na `main`, GitHub Secrets para chaves SSH, `.gitignore` blindado. |
