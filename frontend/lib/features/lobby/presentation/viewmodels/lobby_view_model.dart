@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
+import '../../../../core/network/socket_service.dart';
 import '../../data/lobby_api_repository.dart';
 import '../../data/lobby_mock_repository.dart';
 import '../../domain/models/lobby_models.dart';
@@ -9,6 +10,9 @@ import '../../domain/models/lobby_models.dart';
 /// gerenciamento de party e validação de segurança OWASP A03.
 class LobbyViewModel extends ChangeNotifier {
   final LobbyRepository _repository;
+  final SocketService _socketService;
+
+  ValueChanged<String>? onMatchLaunchRequested;
 
   LobbyMode _currentMode = LobbyMode.createRoom;
   AiDifficulty _aiDifficulty = AiDifficulty.operador;
@@ -30,10 +34,13 @@ class LobbyViewModel extends ChangeNotifier {
   Timer? _matchmakingTransitionTimer;
   bool _isDisposed = false;
 
-  LobbyViewModel({LobbyRepository? repository})
-      : _repository = repository ?? LobbyApiRepository() {
+  LobbyViewModel({LobbyRepository? repository, SocketService? socketService})
+      : _repository = repository ?? LobbyApiRepository(),
+        _socketService = socketService ?? SocketService(namespace: '/arena') {
     _loadInitialData();
     _regenerateRoomCodeInternal();
+    _setupSocketListeners();
+    _socketService.connect();
   }
 
   // Getters de Estado
@@ -227,6 +234,89 @@ class LobbyViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _setupSocketListeners() {
+    _socketService.on('lobby:room_created', (data) {
+      if (_isDisposed || data is! Map) return;
+      try {
+        final newRoom = PublicRoom.fromJson(Map<String, dynamic>.from(data));
+        final idx = _publicRooms.indexWhere((r) => r.code.toUpperCase() == newRoom.code.toUpperCase());
+        if (idx != -1) {
+          _publicRooms[idx] = newRoom;
+        } else {
+          _publicRooms.insert(0, newRoom);
+        }
+        notifyListeners();
+      } catch (e) {
+        debugPrint('[LobbyViewModel] Erro em lobby:room_created: $e');
+      }
+    });
+
+    void handleRoomUpdate(dynamic data) {
+      if (_isDisposed || data is! Map) return;
+      try {
+        final updatedRoom = PublicRoom.fromJson(Map<String, dynamic>.from(data));
+        final idx = _publicRooms.indexWhere((r) => r.code.toUpperCase() == updatedRoom.code.toUpperCase());
+        if (idx != -1) {
+          _publicRooms[idx] = updatedRoom;
+        } else {
+          _publicRooms.insert(0, updatedRoom);
+        }
+
+        if (_activeWaitingRoom != null &&
+            (_activeWaitingRoom!.code.toUpperCase() == updatedRoom.code.toUpperCase() ||
+                _activeWaitingRoom!.code == data['id'])) {
+          _activeWaitingRoom = updatedRoom;
+        }
+        notifyListeners();
+      } catch (e) {
+        debugPrint('[LobbyViewModel] Erro ao processar atualização de sala: $e');
+      }
+    }
+
+    _socketService.on('lobby:room_updated', handleRoomUpdate);
+    _socketService.on('match:room_updated', handleRoomUpdate);
+    _socketService.on('match:state_changed', handleRoomUpdate);
+
+    _socketService.on('match:started', (data) {
+      if (_isDisposed || data is! Map) return;
+      final matchId = data['matchId']?.toString() ??
+          (data['match'] is Map ? data['match']['code']?.toString() : null) ??
+          '';
+      final currentCode = _activeWaitingRoom?.code;
+      if (currentCode != null &&
+          (currentCode.toUpperCase() == matchId.toUpperCase() ||
+              matchId.isEmpty ||
+              (data['match'] is Map && data['match']['id'] == currentCode))) {
+        _activeWaitingRoom = _activeWaitingRoom?.copyWith(status: 'IN_PROGRESS');
+        notifyListeners();
+        if (_matchmakingPhase == MatchmakingPhase.idle) {
+          startMatchmaking(onReadyToLaunch: () {
+            onMatchLaunchRequested?.call(currentCode);
+          });
+        }
+      }
+    });
+
+    _socketService.on('match:player_left', (data) {
+      if (_isDisposed) return;
+      refreshPublicRooms();
+    });
+  }
+
+  /// Inicia a partida a partir do Host e notifica todos os operadores na sala via WebSocket.
+  void triggerStartMatch({required ValueChanged<String> onReadyToLaunch}) {
+    onMatchLaunchRequested = onReadyToLaunch;
+    final currentRoom = _activeWaitingRoom;
+    if (currentRoom != null) {
+      _socketService.connect();
+      _socketService.emit('start_match', {'matchId': currentRoom.code});
+      _repository.startMatch(currentRoom.code);
+      startMatchmaking(onReadyToLaunch: () {
+        onReadyToLaunch(currentRoom.code);
+      });
+    }
+  }
+
   /// Cria uma nova sala dedicada e ingressa o usuário imediatamente na Waiting Room como Host.
   /// Integra com o endpoint POST /api/matches via repositório.
   Future<PublicRoom> createRoom({bool? is2v2, String? customCode, String? scenarioId}) async {
@@ -270,6 +360,14 @@ class LobbyViewModel extends ChangeNotifier {
 
     _activeWaitingRoom = newRoom;
     _regenerateRoomCodeInternal();
+
+    // Registra conexão no socket da partida como Host (Blue Team)
+    _socketService.connect();
+    _socketService.emit('join_match', {
+      'matchId': newRoom.code,
+      'team': 'BLUE_TEAM',
+    });
+
     notifyListeners();
     return newRoom;
   }
@@ -290,6 +388,13 @@ class LobbyViewModel extends ChangeNotifier {
     } catch (e) {
       debugPrint('[LobbyViewModel] Erro ao sincronizar join com backend: $e');
     }
+
+    // Registra conexão no socket da partida como Adversário (Red Team)
+    _socketService.connect();
+    _socketService.emit('join_match', {
+      'matchId': room.code,
+      'team': 'RED_TEAM',
+    });
 
     final updatedPlayerNames = List<String>.from(room.playerNames);
     if (!updatedPlayerNames.contains(userName)) {
@@ -335,8 +440,11 @@ class LobbyViewModel extends ChangeNotifier {
 
   /// Sai da Waiting Room atual e retorna ao navegador de salas do Lobby.
   void leaveWaitingRoom() {
-    _activeWaitingRoom = null;
-    notifyListeners();
+    if (_activeWaitingRoom != null) {
+      _socketService.emit('match:leave', {'matchId': _activeWaitingRoom!.code});
+      _activeWaitingRoom = null;
+      notifyListeners();
+    }
   }
 
   /// Simula a entrada de outro jogador na Waiting Room ativa (útil para testes de UI).
@@ -398,6 +506,13 @@ class LobbyViewModel extends ChangeNotifier {
   void dispose() {
     _isDisposed = true;
     _cancelTimers();
+    _socketService.off('lobby:room_created');
+    _socketService.off('lobby:room_updated');
+    _socketService.off('match:room_updated');
+    _socketService.off('match:state_changed');
+    _socketService.off('match:started');
+    _socketService.off('match:player_left');
+    _socketService.dispose();
     super.dispose();
   }
 }

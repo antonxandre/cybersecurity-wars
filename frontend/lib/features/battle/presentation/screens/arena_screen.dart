@@ -6,10 +6,12 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../game/cyber_arena_game.dart';
+import '../../../auth/domain/services/auth_service.dart';
 import '../../domain/models/chat_message.dart';
 import '../../domain/models/match_state.dart';
 import '../../domain/models/tactical_unit_info.dart';
 import '../../domain/models/tactical_virus_model.dart';
+import '../../domain/services/arena_socket_service.dart';
 import '../../domain/services/scripted_bot_service.dart';
 import '../viewmodels/battle_view_model.dart';
 import '../widgets/arena_atmosphere_overlay.dart';
@@ -26,7 +28,8 @@ import '../widgets/virus_dispatcher_dock.dart';
 
 /// Tela principal da Arena de Jogo (combinação do Flame Game Canvas e Overlays Flutter).
 class ArenaScreen extends StatefulWidget {
-  const ArenaScreen({super.key});
+  final String? matchId;
+  const ArenaScreen({super.key, this.matchId});
 
   @override
   State<ArenaScreen> createState() => _ArenaScreenState();
@@ -38,6 +41,10 @@ class _ArenaScreenState extends State<ArenaScreen> {
   final ScriptedBotService _botService = ScriptedBotService();
   final GlobalKey<TacticalTeamChatWidgetState> _chatKey =
       GlobalKey<TacticalTeamChatWidgetState>();
+
+  ArenaSocketService? _arenaSocket;
+  StreamSubscription? _virusSub;
+  StreamSubscription? _chatSub;
 
   int? _selectedGridX;
   int? _selectedGridY;
@@ -56,6 +63,33 @@ class _ArenaScreenState extends State<ArenaScreen> {
       viewModel: _viewModel,
       onGridCellSelected: _onGridCellSelected,
     );
+
+    // Conexão e sincronização via WebSocket caso seja partida de sala (PvP)
+    final matchId = widget.matchId;
+    if (matchId != null && matchId.isNotEmpty) {
+      _arenaSocket = ArenaSocketService();
+      final currentUser = AuthService.instance.currentUser;
+      _arenaSocket!.joinMatch(
+        matchId,
+        team: currentUser?.isBlueTeam == true ? 'BLUE_TEAM' : 'RED_TEAM',
+      );
+
+      _virusSub = _arenaSocket!.onOpponentVirusReceived.listen((virus) {
+        if (!mounted) return;
+        _viewModel.receiveOpponentVirus(virus);
+        _showTacticalToast(
+          title: 'ATAQUE ADVERSÁRIO',
+          message: '${virus.name} recebido na rota!',
+          icon: virus.icon,
+          accentColor: AppColors.redTeam,
+        );
+      });
+
+      _chatSub = _arenaSocket!.onChatMessageReceived.listen((msg) {
+        if (!mounted) return;
+        _viewModel.addExternalChatMessage(msg);
+      });
+    }
 
     // Callback de seleção padronizada de unidades no tabuleiro (Mainframe, Bastião, Malware)
     _game.onTacticalUnitSelected = (unitInfo, worldPos) {
@@ -197,6 +231,9 @@ class _ArenaScreenState extends State<ArenaScreen> {
       final state = _viewModel.state.value;
       if (state.economy.bits >= virus.bitCost) {
         _viewModel.sendTacticalVirus(virus);
+        if (widget.matchId != null && widget.matchId!.isNotEmpty) {
+          _arenaSocket?.sendVirus(widget.matchId!, virus);
+        }
         _showTacticalToast(
           title: 'MALWARE ENVIADO',
           message: '${virus.name} alocado na fila (+${virus.incomeBonus}T/round)',
@@ -271,6 +308,9 @@ class _ArenaScreenState extends State<ArenaScreen> {
 
   @override
   void dispose() {
+    _virusSub?.cancel();
+    _chatSub?.cancel();
+    _arenaSocket?.dispose();
     _toastTimer?.cancel();
     _viewModel.state.removeListener(_handleStateChange);
     _viewModel.dispose();
@@ -405,10 +445,22 @@ class _ArenaScreenState extends State<ArenaScreen> {
                       onExpandChanged: () {
                         if (mounted) setState(() {});
                       },
-                      onSendMessage: (text, channel) => _viewModel.sendChatMessage(
-                        text: text,
-                        channel: channel,
-                      ),
+                      onSendMessage: (text, channel) {
+                        _viewModel.sendChatMessage(
+                          text: text,
+                          channel: channel,
+                        );
+                        if (widget.matchId != null && widget.matchId!.isNotEmpty) {
+                          final currentUser = AuthService.instance.currentUser;
+                          _arenaSocket?.sendChatMessage(
+                            matchId: widget.matchId!,
+                            text: text,
+                            channel: channel,
+                            senderName: currentUser?.username ?? 'Operador',
+                            senderTeam: currentUser?.isBlueTeam == true ? 'blue' : 'red',
+                          );
+                        }
+                      },
                     ),
                   ),
 

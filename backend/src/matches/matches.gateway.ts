@@ -65,6 +65,26 @@ export class MatchesGateway implements OnGatewayConnection, OnGatewayDisconnect 
     this.logger.log(`Client disconnected: ${client.id}`);
   }
 
+  broadcastRoomUpdated(match: any) {
+    const code = match.code || match.id;
+    this.server.to(`match:${match.id}`).emit('match:room_updated', match);
+    this.server.to(`match:${code}`).emit('match:room_updated', match);
+    this.server.to(`match:${match.id}`).emit('match:state_changed', match);
+    this.server.to(`match:${code}`).emit('match:state_changed', match);
+    this.server.emit('lobby:room_updated', match);
+  }
+
+  broadcastRoomCreated(match: any) {
+    this.server.emit('lobby:room_created', match);
+  }
+
+  broadcastMatchStarted(matchId: string, match: any) {
+    const code = match.code || match.id;
+    this.server.to(`match:${matchId}`).emit('match:started', { matchId, match });
+    this.server.to(`match:${code}`).emit('match:started', { matchId: code, match });
+    this.server.emit('lobby:room_updated', match);
+  }
+
   @SubscribeMessage('join_match')
   async handleJoinMatch(
     @ConnectedSocket() client: Socket,
@@ -78,10 +98,30 @@ export class MatchesGateway implements OnGatewayConnection, OnGatewayDisconnect 
     );
 
     const roomName = `match:${data.matchId}`;
+    const codeRoomName = `match:${match.code}`;
     await client.join(roomName);
+    if (codeRoomName !== roomName) {
+      await client.join(codeRoomName);
+    }
 
-    this.server.to(roomName).emit('match:state_changed', match);
-    this.logger.log(`Socket ${client.id} joined match room ${roomName}`);
+    this.broadcastRoomUpdated(match);
+    this.logger.log(`Socket ${client.id} joined match room ${roomName} (${user?.username})`);
+    return { success: true, match };
+  }
+
+  @SubscribeMessage('start_match')
+  async handleStartMatch(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { matchId: string },
+  ) {
+    const user = client.data.user;
+    const match = await this.matchesService.startMatch(data.matchId, {
+      sub: user?.sub ?? 0,
+      username: user?.username ?? 'Host',
+    });
+
+    this.broadcastMatchStarted(data.matchId, match);
+    this.logger.log(`Socket ${client.id} started match ${data.matchId} (${user?.username})`);
     return { success: true, match };
   }
 
@@ -202,9 +242,13 @@ export class MatchesGateway implements OnGatewayConnection, OnGatewayDisconnect 
   ) {
     const roomName = `match:${data.matchId}`;
     await client.leave(roomName);
+    const updated = await this.matchesService.leaveMatch(data.matchId, client.data.user?.username);
     this.server.to(roomName).emit('match:player_left', {
       user: client.data.user?.username,
     });
+    if (updated) {
+      this.broadcastRoomUpdated(updated);
+    }
     return { success: true };
   }
 }

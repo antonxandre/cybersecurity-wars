@@ -203,6 +203,25 @@ class LobbyApiRepository implements LobbyRepository {
     }
   }
 
+  /// Inicia a partida via API do NestJS (`POST /api/matches/:id/start`).
+  @override
+  Future<bool> startMatch(String roomId) async {
+    final token = AuthService.instance.accessToken;
+    final uri = ApiConfig.apiUrl('/matches/$roomId/start');
+    final headers = {'Content-Type': 'application/json'};
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    try {
+      final res = await http.post(uri, headers: headers).timeout(const Duration(seconds: 4));
+      return res.statusCode == 200 || res.statusCode == 201;
+    } catch (e) {
+      debugPrint('[LobbyApiRepository] Erro ao iniciar partida: $e');
+      return false;
+    }
+  }
+
   static IconData _iconForCategory(String? category) {
     switch (category?.toLowerCase()) {
       case 'llmprompt':

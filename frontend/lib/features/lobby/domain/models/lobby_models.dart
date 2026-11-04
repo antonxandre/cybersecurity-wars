@@ -248,6 +248,7 @@ class PublicRoom {
   final int maxPlayers;
   final int ping;
   final List<String> playerNames;
+  final String status;
 
   const PublicRoom({
     required this.code,
@@ -257,10 +258,12 @@ class PublicRoom {
     required this.maxPlayers,
     required this.ping,
     this.playerNames = const [],
+    this.status = 'WAITING',
   });
 
   bool get isFull => players >= maxPlayers;
   bool get hasSlots => players < maxPlayers;
+  bool get isInProgress => status == 'IN_PROGRESS';
   int get availableSlots => (maxPlayers - players).clamp(0, maxPlayers);
 
   factory PublicRoom.fromJson(Map<String, dynamic> json) {
@@ -298,6 +301,8 @@ class PublicRoom {
         (json['playersCount'] as num?)?.toInt() ??
         playerNames.length;
 
+    final status = json['status']?.toString() ?? 'WAITING';
+
     return PublicRoom(
       code: code,
       host: host,
@@ -306,6 +311,7 @@ class PublicRoom {
       maxPlayers: maxPlayers,
       ping: (json['ping'] as num?)?.toInt() ?? 20,
       playerNames: playerNames.isNotEmpty ? playerNames : [host],
+      status: status,
     );
   }
 
@@ -323,6 +329,7 @@ class PublicRoom {
     int? maxPlayers,
     int? ping,
     List<String>? playerNames,
+    String? status,
   }) {
     return PublicRoom(
       code: code ?? this.code,
@@ -332,6 +339,7 @@ class PublicRoom {
       maxPlayers: maxPlayers ?? this.maxPlayers,
       ping: ping ?? this.ping,
       playerNames: playerNames ?? this.playerNames,
+      status: status ?? this.status,
     );
   }
 }

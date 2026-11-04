@@ -31,6 +31,7 @@ class _GameLobbyScreenState extends State<GameLobbyScreen> {
   void initState() {
     super.initState();
     _viewModel = LobbyViewModel();
+    _viewModel.onMatchLaunchRequested = (code) => _onLaunchArena(code);
     final currentUser = AuthService.instance.currentUser;
     if (currentUser != null && currentUser.username.isNotEmpty) {
       _viewModel.setHostUsername(currentUser.username);
@@ -43,9 +44,14 @@ class _GameLobbyScreenState extends State<GameLobbyScreen> {
     super.dispose();
   }
 
-  void _onLaunchArena() {
+  void _onLaunchArena([String? matchCode]) {
     if (!mounted) return;
-    context.go('/arena');
+    final code = matchCode ?? _viewModel.activeWaitingRoom?.code;
+    if (code != null && code.isNotEmpty) {
+      context.go('/arena?matchId=$code', extra: code);
+    } else {
+      context.go('/arena');
+    }
   }
 
   @override
@@ -122,7 +128,7 @@ class _GameLobbyScreenState extends State<GameLobbyScreen> {
         room: _viewModel.activeWaitingRoom!,
         onLeaveRoom: _viewModel.leaveWaitingRoom,
         onStartMatch: () {
-          _viewModel.startMatchmaking(onReadyToLaunch: _onLaunchArena);
+          _viewModel.triggerStartMatch(onReadyToLaunch: (code) => _onLaunchArena(code));
         },
         onSimulateJoin: _viewModel.simulateJoinSlot,
         onInviteFriend: (friend) {

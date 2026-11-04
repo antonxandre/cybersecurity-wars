@@ -222,6 +222,24 @@ class BattleViewModel extends ChangeNotifier {
     return true;
   }
 
+  /// Adiciona pacote malicioso enviado por oponente remoto via WebSocket na fila de ataque
+  void receiveOpponentVirus(TacticalVirusModel virus) {
+    final current = currentState;
+    final updatedQueue = List<TacticalVirusModel>.from(current.queuedVirusesForOpponent)..add(virus);
+    updateState(current.copyWith(
+      queuedVirusesForOpponent: updatedQueue,
+    ));
+  }
+
+  /// Adiciona mensagem de chat recebida via WebSocket remoto evitando duplicações
+  void addExternalChatMessage(ChatMessage message) {
+    final current = currentState;
+    if (current.chatMessages.any((m) => m.id == message.id)) return;
+    updateState(current.copyWith(
+      chatMessages: [...current.chatMessages, message],
+    ));
+  }
+
   /// Dano sofrido pelo Mainframe Central
   void onMainframeDamaged(String teamId, double damage) {
     final current = currentState;

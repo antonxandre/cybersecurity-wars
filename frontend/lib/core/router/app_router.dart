@@ -53,7 +53,9 @@ final GoRouter appRouter = GoRouter(
       path: '/arena',
       name: 'arena',
       builder: (context, state) {
-        return const ArenaScreen();
+        final matchId = state.uri.queryParameters['matchId'] ??
+            (state.extra is String ? state.extra as String : null);
+        return ArenaScreen(matchId: matchId);
       },
     ),
   ],

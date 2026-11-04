@@ -9,7 +9,10 @@
 .env.development
 .env.test
 .env.production
+.deploy.env
+*.tar.gz
 !.env.example
+!.deploy.env.example
 
 # SSH Private Keys & Certificates
 id_rsa

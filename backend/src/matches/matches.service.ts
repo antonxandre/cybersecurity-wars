@@ -202,6 +202,43 @@ export class MatchesService {
     return this.formatMatch(match);
   }
 
+  async startMatch(matchId: string, user?: { sub: number; username: string }) {
+    const match = await this.getMatch(matchId);
+    match.status = 'IN_PROGRESS';
+    this.addEvent(
+      match,
+      UserRole.ADMIN,
+      user?.username ?? 'Host',
+      'MATCH_START',
+      'Partida iniciada pelo Host!',
+      0,
+      0,
+    );
+    match.updatedAt = new Date();
+    return this.formatMatch(match);
+  }
+
+  async leaveMatch(matchId: string, username?: string) {
+    let match: MatchSession;
+    try {
+      match = await this.getMatch(matchId);
+    } catch {
+      return null;
+    }
+
+    if (username) {
+      if (match.bluePlayer?.username === username) {
+        delete match.bluePlayer;
+      }
+      if (match.redPlayer?.username === username) {
+        delete match.redPlayer;
+      }
+      match.casters = match.casters.filter((c) => c.username !== username);
+    }
+    match.updatedAt = new Date();
+    return this.formatMatch(match);
+  }
+
   async submitPromptAttack(matchId: string, user: { sub: number; username: string; role: UserRole }, prompt: string) {
     const match = await this.getMatch(matchId);
 

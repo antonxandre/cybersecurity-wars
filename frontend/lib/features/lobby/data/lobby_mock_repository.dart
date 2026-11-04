@@ -15,6 +15,7 @@ abstract class LobbyRepository {
     String? mode,
   });
   Future<bool> joinRoom(String roomId, {String? team});
+  Future<bool> startMatch(String roomId);
 }
 
 /// Implementação do repositório para testes unitários e fallback local controlado.
@@ -105,6 +106,11 @@ class LobbyMockRepository implements LobbyRepository {
 
   @override
   Future<bool> joinRoom(String roomId, {String? team}) async {
+    return true;
+  }
+
+  @override
+  Future<bool> startMatch(String roomId) async {
     return true;
   }
 }
