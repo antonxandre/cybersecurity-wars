@@ -34,6 +34,11 @@ if [ -f ".deploy.env" ]; then
     source ".deploy.env"
 fi
 
+# Se não foi informada chave e existir a chave dedicada promptsec_key, usá-la por padrão
+if [ -z "$SSH_KEY" ] && [ -f "$HOME/.ssh/promptsec_key" ]; then
+    SSH_KEY="$HOME/.ssh/promptsec_key"
+fi
+
 # Função de ajuda
 show_help() {
     cat <<EOF
@@ -106,10 +111,19 @@ echo ""
 # 1. Testar Conexão SSH com a VM
 # ------------------------------------------------------------------------------
 echo -e "${BLUE}📡 [1/5] Testando conexão SSH com a VM...${NC}"
-if ! ssh "${SSH_OPTS[@]}" "${VM_USER}@${VM_HOST}" "echo 'Conexão SSH bem-sucedida!'" > /dev/null 2>&1; then
+set +e
+SSH_ERR_OUTPUT=$(ssh "${SSH_OPTS[@]}" "${VM_USER}@${VM_HOST}" "echo 'Conexão SSH bem-sucedida!'" 2>&1)
+SSH_EXIT_CODE=$?
+set -e
+
+if [ $SSH_EXIT_CODE -ne 0 ]; then
     echo -e "${RED}❌ Erro: Não foi possível conectar via SSH a ${VM_USER}@${VM_HOST}.${NC}"
-    echo -e "${YELLOW}Dica: Verifique se o usuário ou chave SSH estão corretos.${NC}"
-    echo -e "Exemplo: $0 -u seu_usuario_gcp -k ~/.ssh/sua_chave"
+    echo -e "${YELLOW}Detalhe do erro retornado pelo SSH:${NC}"
+    echo -e "${RED}${SSH_ERR_OUTPUT}${NC}\n"
+    echo -e "${YELLOW}Como resolver:${NC}"
+    echo -e "1. Usuário na VM: descubra seu usuário rodando 'whoami' no terminal da VM e passe com: $0 -u <usuario>"
+    echo -e "2. Chave SSH: garanta que sua chave pública local está no ~/.ssh/authorized_keys da VM."
+    echo -e "3. IP direto: tente passar o IP externo com: $0 -h <IP_EXTERNO>"
     exit 1
 fi
 echo -e "${GREEN}✓ Conexão SSH validada com sucesso.${NC}"
