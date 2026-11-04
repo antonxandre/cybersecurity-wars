@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 
-/// Arquétipos táticos de unidades defensivas (Bastiões) na grade do PromptSec Arena
+/// Arquétipos táticos de unidades defensivas (Bastiões) na grade do Cyber Arena
 enum BastionNodeType {
   firewall, // Tanque e baixo ataque (alta durabilidade e bloqueio frontal)
-  proxy,    // Ataque de curta distância (alto DPS a queima-roupa)
-  vpn,      // Buff de aura em área (potencializa nós vizinhos)
-  ids,      // Sniper de longo alcance (elimina alvos prioritários à distância)
+  proxy, // Ataque de curta distância (alto DPS a queima-roupa)
+  vpn, // Buff de aura em área (potencializa nós vizinhos)
+  ids, // Sniper de longo alcance (elimina alvos prioritários à distância)
   honeypot; // Controle de grupo (desaceleração e atração de malwares)
 
   // Compatibilidade com definições legadas
@@ -112,7 +112,8 @@ class BastionNode {
     }
 
     final hpDifference = newMaxHp - maxIntegrity;
-    final updatedCurrentHp = (currentIntegrity + hpDifference).clamp(1.0, newMaxHp);
+    final updatedCurrentHp =
+        (currentIntegrity + hpDifference).clamp(1.0, newMaxHp);
 
     return copyWith(
       level: nextLevel,
@@ -143,28 +144,38 @@ class BastionNode {
   String get currentEffectDescription {
     switch (type) {
       case BastionNodeType.firewall:
-        if (level == 1) return 'Barreira Básica: Interceptação pontual e absorção pesada.';
-        if (level == 2) return 'Stateful Inspection: Reduz em 15% todo dano recebido.';
+        if (level == 1)
+          return 'Barreira Básica: Interceptação pontual e absorção pesada.';
+        if (level == 2)
+          return 'Stateful Inspection: Reduz em 15% todo dano recebido.';
         return 'Stateful Inspection (+15% de resistência passiva a dano).';
 
       case BastionNodeType.proxy:
-        if (level == 1) return 'Alta Cadência: Disparos rápidos contra o alvo mais próximo.';
-        if (level == 2) return 'Reverse Proxy: Dispara contra 2 alvos simultâneos.';
+        if (level == 1)
+          return 'Alta Cadência: Disparos rápidos contra o alvo mais próximo.';
+        if (level == 2)
+          return 'Reverse Proxy: Dispara contra 2 alvos simultâneos.';
         return 'Reverse Proxy: Disparo simultâneo multithread com alta cadência.';
 
       case BastionNodeType.vpn:
-        if (level == 1) return 'Aura Segura: Concede +15% de DPS a nós aliados no raio.';
-        if (level == 2) return 'Túnel IPSec: Eleva o bônus para +25% de DPS e +15% de cadência.';
+        if (level == 1)
+          return 'Aura Segura: Concede +15% de DPS a nós aliados no raio.';
+        if (level == 2)
+          return 'Túnel IPSec: Eleva o bônus para +25% de DPS e +15% de cadência.';
         return 'Túnel IPSec (+25% de DPS e +15% de velocidade de disparo aos vizinhos).';
 
       case BastionNodeType.ids:
-        if (level == 1) return 'Sniper de Rede: Longo alcance focado no pacote com maior HP.';
-        if (level == 2) return 'Assinatura Heurística: Causa +35% de dano bônus contra alvos pesados.';
+        if (level == 1)
+          return 'Sniper de Rede: Longo alcance focado no pacote com maior HP.';
+        if (level == 2)
+          return 'Assinatura Heurística: Causa +35% de dano bônus contra alvos pesados.';
         return 'Assinatura Heurística (+35% de dano contra malwares pesados e chefes).';
 
       case BastionNodeType.honeypot:
-        if (level == 1) return 'Armadilha Lógica: Reduz a velocidade dos malwares no raio em 30%.';
-        if (level == 2) return 'Isca Magnética: Reduz a velocidade em 45% e atrai o foco para si.';
+        if (level == 1)
+          return 'Armadilha Lógica: Reduz a velocidade dos malwares no raio em 30%.';
+        if (level == 2)
+          return 'Isca Magnética: Reduz a velocidade em 45% e atrai o foco para si.';
         return 'Isca Magnética (-45% de velocidade inimiga e atração prioritária).';
     }
   }
@@ -269,6 +280,41 @@ class BastionNode {
       attackRange: attackRange ?? this.attackRange,
       attackDamageBits: attackDamageBits ?? this.attackDamageBits,
       isDefendingMainframe: isDefendingMainframe ?? this.isDefendingMainframe,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'type': type.name,
+        'level': level,
+        'gridX': gridX,
+        'gridY': gridY,
+        'tokenCost': tokenCost,
+        'maxIntegrity': maxIntegrity,
+        'currentIntegrity': currentIntegrity,
+        'attackRange': attackRange,
+        'attackDamageBits': attackDamageBits,
+        'isDefendingMainframe': isDefendingMainframe,
+      };
+
+  factory BastionNode.fromJson(Map<String, dynamic> json) {
+    return BastionNode(
+      id: json['id'] as String? ?? 'node_${json['gridX']}_${json['gridY']}',
+      name: json['name'] as String? ?? 'Bastion',
+      type: BastionNodeType.values.firstWhere(
+        (t) => t.name == json['type'],
+        orElse: () => BastionNodeType.firewall,
+      ),
+      level: (json['level'] as num?)?.toInt() ?? 1,
+      gridX: (json['gridX'] as num?)?.toInt() ?? 0,
+      gridY: (json['gridY'] as num?)?.toInt() ?? 0,
+      tokenCost: (json['tokenCost'] as num?)?.toInt() ?? 40,
+      maxIntegrity: (json['maxIntegrity'] as num?)?.toDouble() ?? 500.0,
+      currentIntegrity: (json['currentIntegrity'] as num?)?.toDouble() ?? 500.0,
+      attackRange: (json['attackRange'] as num?)?.toDouble() ?? 120.0,
+      attackDamageBits: (json['attackDamageBits'] as num?)?.toDouble() ?? 25.0,
+      isDefendingMainframe: json['isDefendingMainframe'] as bool? ?? false,
     );
   }
 

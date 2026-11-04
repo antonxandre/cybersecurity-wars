@@ -9,6 +9,7 @@ import '../../domain/models/lobby_models.dart';
 class MatchmakingOverlay extends StatefulWidget {
   final MatchmakingPhase phase;
   final int elapsedSeconds;
+  final int countdownSeconds;
   final VoidCallback onCancel;
   final LobbyMode mode;
 
@@ -16,6 +17,7 @@ class MatchmakingOverlay extends StatefulWidget {
     super.key,
     required this.phase,
     required this.elapsedSeconds,
+    this.countdownSeconds = 0,
     required this.onCancel,
     this.mode = LobbyMode.createRoom,
   });
@@ -107,43 +109,87 @@ class _MatchmakingOverlayState extends State<MatchmakingOverlay>
                     const SizedBox(height: 24),
 
                     // 2. Status e Mensagem
-                    Text(
-                      switch (widget.phase) {
-                        MatchmakingPhase.searching => widget.mode == LobbyMode.createRoom
-                            ? 'INICIALIZANDO SALA'
-                            : 'PREPARANDO SIMULAÇÃO',
-                        MatchmakingPhase.found => widget.mode == LobbyMode.createRoom
-                            ? 'SALA PRONTA!'
-                            : 'SIMULAÇÃO PRONTA!',
-                        MatchmakingPhase.launching => 'CARREGANDO ARENA...',
-                        MatchmakingPhase.idle => '',
-                      },
-                      textAlign: TextAlign.center,
-                      style: AppTypography.titleLarge.copyWith(
-                        color: statusColor,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 2.0,
+                    if (widget.countdownSeconds > 0) ...[
+                      Text(
+                        'PARTIDA INICIANDO',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.titleLarge.copyWith(
+                          color: AppColors.bandwidth,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2.0,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      switch (widget.phase) {
-                        MatchmakingPhase.searching => widget.mode == LobbyMode.createRoom
-                            ? 'Alocando nó seguro e gerando credenciais de sessão...'
-                            : 'Carregando rotinas e parâmetros do bot tático...',
-                        MatchmakingPhase.found => widget.mode == LobbyMode.createRoom
-                            ? 'Perímetro defensivo estabelecido e código reservado.'
-                            : 'Defesas e nós adversários configurados.',
-                        MatchmakingPhase.launching =>
-                          'Estabelecendo conexão segura via TLS 1.3...',
-                        MatchmakingPhase.idle => '',
-                      },
-                      textAlign: TextAlign.center,
-                      style: AppTypography.codeSmall.copyWith(
-                        color: AppColors.textSecondary,
-                        fontSize: 10,
+                      const SizedBox(height: 6),
+                      Text(
+                        'Sincronizando operadores e conectando à arena...',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.codeSmall.copyWith(
+                          color: AppColors.textSecondary,
+                          fontSize: 10,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 14),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        transitionBuilder: (child, animation) =>
+                            ScaleTransition(scale: animation, child: child),
+                        child: Text(
+                          '${widget.countdownSeconds}',
+                          key: ValueKey<int>(widget.countdownSeconds),
+                          textAlign: TextAlign.center,
+                          style: AppTypography.displayLarge.copyWith(
+                            color: AppColors.bandwidth,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 56,
+                            letterSpacing: 4.0,
+                            shadows: [
+                              Shadow(
+                                color: AppColors.bandwidth.withValues(alpha: 0.8),
+                                blurRadius: 20,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ] else ...[
+                      Text(
+                        switch (widget.phase) {
+                          MatchmakingPhase.searching => widget.mode == LobbyMode.createRoom
+                              ? 'INICIALIZANDO SALA'
+                              : 'PREPARANDO SIMULAÇÃO',
+                          MatchmakingPhase.found => widget.mode == LobbyMode.createRoom
+                              ? 'SALA PRONTA!'
+                              : 'SIMULAÇÃO PRONTA!',
+                          MatchmakingPhase.launching => 'CARREGANDO ARENA...',
+                          MatchmakingPhase.idle => '',
+                        },
+                        textAlign: TextAlign.center,
+                        style: AppTypography.titleLarge.copyWith(
+                          color: statusColor,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2.0,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        switch (widget.phase) {
+                          MatchmakingPhase.searching => widget.mode == LobbyMode.createRoom
+                              ? 'Alocando nó seguro e gerando credenciais de sessão...'
+                              : 'Carregando rotinas e parâmetros do bot tático...',
+                          MatchmakingPhase.found => widget.mode == LobbyMode.createRoom
+                              ? 'Perímetro defensivo estabelecido e código reservado.'
+                              : 'Defesas e nós adversários configurados.',
+                          MatchmakingPhase.launching =>
+                            'Estabelecendo conexão segura via TLS 1.3...',
+                          MatchmakingPhase.idle => '',
+                        },
+                        textAlign: TextAlign.center,
+                        style: AppTypography.codeSmall.copyWith(
+                          color: AppColors.textSecondary,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 20),
 
                     // 3. Tempo Decorrido
@@ -155,7 +201,9 @@ class _MatchmakingOverlayState extends State<MatchmakingOverlay>
                         border: Border.all(color: AppColors.border),
                       ),
                       child: Text(
-                        _formatTimer(widget.elapsedSeconds),
+                        widget.countdownSeconds > 0
+                            ? 'CONTAGEM: ${widget.countdownSeconds}s'
+                            : _formatTimer(widget.elapsedSeconds),
                         style: AppTypography.codeLarge.copyWith(
                           color: Colors.white,
                           letterSpacing: 3.0,

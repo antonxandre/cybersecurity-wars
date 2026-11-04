@@ -8,8 +8,8 @@ import '../../features/battle/domain/models/team_player_model.dart';
 
 /// Componente que renderiza um Quadrante 7x10 de Jogador no Tabuleiro Top-Down.
 class BoardQuadrantSectorComponent extends PositionComponent with TapCallbacks {
-  final TeamPlayerModel player;
-  final bool isLocalPlayer;
+  TeamPlayerModel player;
+  bool isLocalPlayer;
   final bool isFogOfWarActive;
   final Map<String, BastionNode> Function() getNodes;
   final MatchPhase Function() getMatchPhase;
@@ -37,6 +37,19 @@ class BoardQuadrantSectorComponent extends PositionComponent with TapCallbacks {
     required this.getMatchPhase,
     this.onCellTapped,
   }) : super(position: position, size: size);
+
+  void setLocalPlayer(bool value) {
+    isLocalPlayer = value;
+  }
+
+  void updatePlayer(TeamPlayerModel newPlayer) {
+    player = newPlayer;
+    if (isLoaded) {
+      _borderPaint.color = player.color;
+      _gridLinePaint.color = player.color.withValues(alpha: 0.15);
+      _selectedCellPaint.color = player.color.withValues(alpha: 0.25);
+    }
+  }
 
   @override
   Future<void> onLoad() async {

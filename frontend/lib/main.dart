@@ -25,16 +25,8 @@ void main() async {
     DeviceOrientation.landscapeRight,
   ]);
 
-  if (kDebugMode) {
-    // Quando kDebugMode for true, o software não deve inicializar em tela cheia;
-    // a janela deve estar maximizada apenas.
-    FullscreenHelper.maximize();
-  } else {
-    // Em produção/release, inicializa em tela cheia imersiva por padrão
-    FullscreenHelper.initDefaultFullscreen();
-    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    await Flame.device.fullScreen();
-  }
+  // Inicializa o modo de exibição (modo janela normal por padrão)
+  FullscreenHelper.initDefaultFullscreen();
 
   // Inicializadores de dispositivo do Flame Engine
   await Flame.device.setLandscape();
@@ -48,7 +40,7 @@ class PromptSecArenaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'PromptSec Arena (CyberWars)',
+      title: 'Cyber Arena (CyberWars)',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       routerConfig: appRouter,

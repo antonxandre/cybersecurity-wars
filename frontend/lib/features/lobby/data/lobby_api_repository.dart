@@ -140,6 +140,7 @@ class LobbyApiRepository implements LobbyRepository {
       if (effectiveCode != null) 'customCode': effectiveCode,
       'is2v2': is2v2,
       'mode': mode ?? (is2v2 ? '2v2 Duplas' : '1v1 Duelo'),
+      'joinAsTeam': 'BLUE_TEAM',
     };
 
     try {
@@ -192,7 +193,7 @@ class LobbyApiRepository implements LobbyRepository {
           .post(
             uri,
             headers: headers,
-            body: jsonEncode({if (team != null) 'team': team}),
+            body: jsonEncode({'team': team ?? 'RED_TEAM'}),
           )
           .timeout(const Duration(seconds: 4));
 

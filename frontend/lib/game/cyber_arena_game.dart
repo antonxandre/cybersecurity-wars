@@ -60,7 +60,57 @@ class CyberArenaGame extends FlameGame with PanDetector, ScrollDetector {
   MatchPhase? _lastPhase;
   StreamSubscription? _dispatchSubscription;
 
-  CyberArenaGame({required this.viewModel, this.onGridCellSelected});
+  /// Quadrante controlado pelo jogador nesta instância da Arena (Top-Left para J1, Bottom-Left para J2)
+  BoardQuadrant localQuadrant;
+
+  CyberArenaGame({
+    required this.viewModel,
+    this.onGridCellSelected,
+    this.localQuadrant = BoardQuadrant.topLeft,
+  });
+
+  /// Define o quadrante do jogador local dinamicamente e reposiciona a câmera
+  void setLocalQuadrant(BoardQuadrant quadrant) {
+    localQuadrant = quadrant;
+    if (isLoaded) {
+      _sectorAllyTL.setLocalPlayer(quadrant == BoardQuadrant.topLeft);
+      _sectorAllyBL.setLocalPlayer(quadrant == BoardQuadrant.bottomLeft);
+      _sectorAllyTR.setLocalPlayer(quadrant == BoardQuadrant.topRight);
+      _sectorAllyBR.setLocalPlayer(quadrant == BoardQuadrant.bottomRight);
+    }
+    focusOnSector(quadrant);
+  }
+
+  /// Atualiza os jogadores vinculados aos setores de quadrante
+  void updateSectorPlayers({List<TeamPlayerModel>? bluePlayers, List<TeamPlayerModel>? redPlayers}) {
+    if (!isLoaded) return;
+    if (bluePlayers != null && bluePlayers.isNotEmpty) {
+      _sectorAllyTL.updatePlayer(bluePlayers[0]);
+      if (bluePlayers.length > 1) {
+        _sectorAllyBL.updatePlayer(bluePlayers[1]);
+      }
+    }
+    if (redPlayers != null && redPlayers.isNotEmpty) {
+      _sectorAllyTR.updatePlayer(redPlayers[0]);
+      if (redPlayers.length > 1) {
+        _sectorAllyBR.updatePlayer(redPlayers[1]);
+      }
+    }
+  }
+
+  /// Retorna o componente de setor associado ao jogador local
+  BoardQuadrantSectorComponent getLocalSector() {
+    switch (localQuadrant) {
+      case BoardQuadrant.topLeft:
+        return _sectorAllyTL;
+      case BoardQuadrant.bottomLeft:
+        return _sectorAllyBL;
+      case BoardQuadrant.topRight:
+        return _sectorAllyTR;
+      case BoardQuadrant.bottomRight:
+        return _sectorAllyBR;
+    }
+  }
 
   @override
   Color backgroundColor() => AppColors.background;
@@ -84,16 +134,18 @@ class CyberArenaGame extends FlameGame with PanDetector, ScrollDetector {
     // Blue Mainframe em (-440, 0). Distância de 300px:
     // Eixo X: Coluna Esquerda termina em x = -740; Coluna Direita inicia em x = -140
     // Eixo Y: Top termina em y = -300; Bottom inicia em y = 300
-    // J1: Top-Left (Jogador Local)
+    // J1: Top-Left (Jogador 1)
     _sectorAllyTL = BoardQuadrantSectorComponent(
       position: Vector2(-1090, -800),
       size: sectorSize,
       player: bluePlayers[0],
-      isLocalPlayer: true,
-      getNodes: () => viewModel.state.value.nodes,
+      isLocalPlayer: localQuadrant == BoardQuadrant.topLeft,
+      getNodes: () => viewModel.getQuadrantNodes(BoardQuadrant.topLeft),
       getMatchPhase: () => viewModel.state.value.phase,
       onCellTapped: (col, row) {
-        onGridCellSelected?.call(col, row);
+        if (localQuadrant == BoardQuadrant.topLeft) {
+          onGridCellSelected?.call(col, row);
+        }
       },
     );
     world.add(_sectorAllyTL);
@@ -103,9 +155,14 @@ class CyberArenaGame extends FlameGame with PanDetector, ScrollDetector {
       position: Vector2(-1090, 300),
       size: sectorSize,
       player: bluePlayers.length > 1 ? bluePlayers[1] : bluePlayers[0],
-      isLocalPlayer: false,
-      getNodes: () => bluePlayers.length > 1 ? bluePlayers[1].nodes : const {},
+      isLocalPlayer: localQuadrant == BoardQuadrant.bottomLeft,
+      getNodes: () => viewModel.getQuadrantNodes(BoardQuadrant.bottomLeft),
       getMatchPhase: () => viewModel.state.value.phase,
+      onCellTapped: (col, row) {
+        if (localQuadrant == BoardQuadrant.bottomLeft) {
+          onGridCellSelected?.call(col, row);
+        }
+      },
     );
     world.add(_sectorAllyBL);
 
@@ -114,9 +171,14 @@ class CyberArenaGame extends FlameGame with PanDetector, ScrollDetector {
       position: Vector2(-140, -800),
       size: sectorSize,
       player: bluePlayers.length > 2 ? bluePlayers[2] : bluePlayers[0],
-      isLocalPlayer: false,
-      getNodes: () => bluePlayers.length > 2 ? bluePlayers[2].nodes : const {},
+      isLocalPlayer: localQuadrant == BoardQuadrant.topRight,
+      getNodes: () => viewModel.getQuadrantNodes(BoardQuadrant.topRight),
       getMatchPhase: () => viewModel.state.value.phase,
+      onCellTapped: (col, row) {
+        if (localQuadrant == BoardQuadrant.topRight) {
+          onGridCellSelected?.call(col, row);
+        }
+      },
     );
     world.add(_sectorAllyTR);
 
@@ -125,9 +187,14 @@ class CyberArenaGame extends FlameGame with PanDetector, ScrollDetector {
       position: Vector2(-140, 300),
       size: sectorSize,
       player: bluePlayers.length > 3 ? bluePlayers[3] : bluePlayers[0],
-      isLocalPlayer: false,
-      getNodes: () => bluePlayers.length > 3 ? bluePlayers[3].nodes : const {},
+      isLocalPlayer: localQuadrant == BoardQuadrant.bottomRight,
+      getNodes: () => viewModel.getQuadrantNodes(BoardQuadrant.bottomRight),
       getMatchPhase: () => viewModel.state.value.phase,
+      onCellTapped: (col, row) {
+        if (localQuadrant == BoardQuadrant.bottomRight) {
+          onGridCellSelected?.call(col, row);
+        }
+      },
     );
     world.add(_sectorAllyBR);
 
@@ -161,7 +228,7 @@ class CyberArenaGame extends FlameGame with PanDetector, ScrollDetector {
       size: sectorSize,
       player: redPlayers[0],
       isLocalPlayer: false,
-      isFogOfWarActive: true,
+      isFogOfWarActive: false,
       getNodes: () => viewModel.state.value.opponentNodes,
       getMatchPhase: () => viewModel.state.value.phase,
     );
@@ -287,9 +354,9 @@ class CyberArenaGame extends FlameGame with PanDetector, ScrollDetector {
     onCameraMoved?.call();
   }
 
-  /// Foco direto no setor 7x10 do jogador local (Top-Left)
+  /// Foco direto no setor do jogador local (Top-Left ou Bottom-Left)
   void focusOnMyGrid() {
-    focusOnSector(BoardQuadrant.topLeft);
+    focusOnSector(localQuadrant);
   }
 
   /// Foca a câmera em um quadrante específico com zoom para alocação/inspeção de unidades
@@ -335,6 +402,9 @@ class CyberArenaGame extends FlameGame with PanDetector, ScrollDetector {
 
   void clearGridSelection() {
     _sectorAllyTL.clearSelection();
+    _sectorAllyBL.clearSelection();
+    _sectorAllyTR.clearSelection();
+    _sectorAllyBR.clearSelection();
   }
 
   /// Retorna as coordenadas de projeção no canvas/tela do Flutter para qualquer posição de mundo
@@ -348,26 +418,28 @@ class CyberArenaGame extends FlameGame with PanDetector, ScrollDetector {
     return camera.localToGlobal(pos);
   }
 
-  /// Retorna as coordenadas de mundo para uma célula do grid local (J1)
+  /// Retorna as coordenadas de mundo para uma célula do grid local ativo (J1 ou J2)
   Vector2 getCellWorldPosition(int gridX, int gridY) {
-    final cellWidth = _sectorAllyTL.size.x / BoardQuadrantSectorComponent.columns;
-    final cellHeight = _sectorAllyTL.size.y / BoardQuadrantSectorComponent.rows;
+    final sector = getLocalSector();
+    final cellWidth = sector.size.x / BoardQuadrantSectorComponent.columns;
+    final cellHeight = sector.size.y / BoardQuadrantSectorComponent.rows;
     final localPos = Vector2(
       (gridX + 0.5) * cellWidth,
       (gridY + 0.5) * cellHeight,
     );
-    return _sectorAllyTL.position + localPos;
+    return sector.position + localPos;
   }
 
-  /// Retorna as coordenadas de projeção no canvas/tela do Flutter para uma célula do grid local (J1)
+  /// Retorna as coordenadas de projeção no canvas/tela do Flutter para uma célula do grid local ativo
   Vector2 getCellScreenPosition(int gridX, int gridY) {
     return camera.localToGlobal(getCellWorldPosition(gridX, gridY));
   }
 
   void _spawnCardPackets(GameCard card, int lane) {
-    final cellWidth = _sectorAllyTL.size.x / BoardQuadrantSectorComponent.columns;
-    final targetX = _sectorAllyTL.position.x + (lane == 0 ? cellWidth * 1.5 : cellWidth * 5.5);
-    final startY = _sectorAllyTL.position.y + _sectorAllyTL.size.y - 10;
+    final sector = getLocalSector();
+    final cellWidth = sector.size.x / BoardQuadrantSectorComponent.columns;
+    final targetX = sector.position.x + (lane == 0 ? cellWidth * 1.5 : cellWidth * 5.5);
+    final startY = sector.position.y + sector.size.y - 10;
 
     // Todas as cartas lançadas pelo jogador no tabuleiro aliado atuam como defesas do time azul
     const origin = PacketOrigin.blueDefense;
@@ -723,10 +795,10 @@ class CyberArenaGame extends FlameGame with PanDetector, ScrollDetector {
 
     // Reúne todos os nós de cada quadrante com a posição do respectivo setor
     final playerSectors = [
-      (player: players[0], sector: _sectorAllyTL, nodes: state.nodes),
-      if (players.length > 1) (player: players[1], sector: _sectorAllyBL, nodes: players[1].nodes),
-      if (players.length > 2) (player: players[2], sector: _sectorAllyTR, nodes: players[2].nodes),
-      if (players.length > 3) (player: players[3], sector: _sectorAllyBR, nodes: players[3].nodes),
+      (player: players[0], sector: _sectorAllyTL, nodes: viewModel.getQuadrantNodes(BoardQuadrant.topLeft)),
+      if (players.length > 1) (player: players[1], sector: _sectorAllyBL, nodes: viewModel.getQuadrantNodes(BoardQuadrant.bottomLeft)),
+      if (players.length > 2) (player: players[2], sector: _sectorAllyTR, nodes: viewModel.getQuadrantNodes(BoardQuadrant.topRight)),
+      if (players.length > 3) (player: players[3], sector: _sectorAllyBR, nodes: viewModel.getQuadrantNodes(BoardQuadrant.bottomRight)),
     ];
 
     for (final ps in playerSectors) {

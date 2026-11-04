@@ -3,6 +3,7 @@ import '../../../../core/commands/game_command.dart';
 import '../../domain/models/bastion_node.dart';
 import '../../domain/models/game_card.dart';
 import '../../domain/models/match_state.dart';
+import '../../domain/models/team_player_model.dart';
 import '../viewmodels/battle_view_model.dart';
 
 /// Comando para Construir Nó de Defesa na Fase de Preparação (Legion TD).
@@ -39,22 +40,52 @@ class BuildBastionNodeCommand extends GameCommand<BattleViewModel> {
     final key = '${node.gridX},${node.gridY}';
     final updatedNodes = Map<String, BastionNode>.from(state.nodes)..[key] = node;
 
+    final updatedQuadrantNodes =
+        Map<BoardQuadrant, Map<String, BastionNode>>.from(state.allyQuadrantNodes);
+    final currentQ = Map<String, BastionNode>.from(updatedQuadrantNodes[vm.localQuadrant] ?? {});
+    currentQ[key] = node;
+    updatedQuadrantNodes[vm.localQuadrant] = currentQ;
+
+    final updatedAllyPlayers = state.allyPlayers.map((p) {
+      if (p.quadrant == vm.localQuadrant) {
+        return p.copyWith(nodes: currentQ);
+      }
+      return p;
+    }).toList();
+
     vm.updateState(state.copyWith(
       tokens: state.tokens - node.tokenCost,
       nodes: updatedNodes,
+      allyQuadrantNodes: updatedQuadrantNodes,
+      allyPlayers: updatedAllyPlayers,
     ));
-    debugPrint('[BuildCommand] Nó construído em ($key): ${node.name}');
+    debugPrint('[BuildCommand] Nó construído em ($key): ${node.name} no quadrante ${vm.localQuadrant}');
   }
 
   @override
-  Future<void> undo(BattleViewModel context) async {
-    final state = context.state.value;
+  Future<void> undo(BattleViewModel vm) async {
+    final state = vm.state.value;
     final key = '${node.gridX},${node.gridY}';
     final updatedNodes = Map<String, BastionNode>.from(state.nodes)..remove(key);
 
-    context.updateState(state.copyWith(
+    final updatedQuadrantNodes =
+        Map<BoardQuadrant, Map<String, BastionNode>>.from(state.allyQuadrantNodes);
+    final currentQ = Map<String, BastionNode>.from(updatedQuadrantNodes[vm.localQuadrant] ?? {});
+    currentQ.remove(key);
+    updatedQuadrantNodes[vm.localQuadrant] = currentQ;
+
+    final updatedAllyPlayers = state.allyPlayers.map((p) {
+      if (p.quadrant == vm.localQuadrant) {
+        return p.copyWith(nodes: currentQ);
+      }
+      return p;
+    }).toList();
+
+    vm.updateState(state.copyWith(
       tokens: state.tokens + node.tokenCost,
       nodes: updatedNodes,
+      allyQuadrantNodes: updatedQuadrantNodes,
+      allyPlayers: updatedAllyPlayers,
     ));
     debugPrint('[BuildCommand] Desfeita construção de ($key). Reembolsados ${node.tokenCost} Tokens');
   }
@@ -87,22 +118,52 @@ class DismantleBastionNodeCommand extends GameCommand<BattleViewModel> {
     final key = '${node.gridX},${node.gridY}';
     final updatedNodes = Map<String, BastionNode>.from(state.nodes)..remove(key);
 
+    final updatedQuadrantNodes =
+        Map<BoardQuadrant, Map<String, BastionNode>>.from(state.allyQuadrantNodes);
+    final currentQ = Map<String, BastionNode>.from(updatedQuadrantNodes[vm.localQuadrant] ?? {});
+    currentQ.remove(key);
+    updatedQuadrantNodes[vm.localQuadrant] = currentQ;
+
+    final updatedAllyPlayers = state.allyPlayers.map((p) {
+      if (p.quadrant == vm.localQuadrant) {
+        return p.copyWith(nodes: currentQ);
+      }
+      return p;
+    }).toList();
+
     vm.updateState(state.copyWith(
       tokens: state.tokens + node.tokenCost,
       nodes: updatedNodes,
+      allyQuadrantNodes: updatedQuadrantNodes,
+      allyPlayers: updatedAllyPlayers,
     ));
     debugPrint('[DismantleCommand] Nó desmontado em ($key). Reembolsados ${node.tokenCost} Tokens');
   }
 
   @override
-  Future<void> undo(BattleViewModel context) async {
-    final state = context.state.value;
+  Future<void> undo(BattleViewModel vm) async {
+    final state = vm.state.value;
     final key = '${node.gridX},${node.gridY}';
     final updatedNodes = Map<String, BastionNode>.from(state.nodes)..[key] = node;
 
-    context.updateState(state.copyWith(
+    final updatedQuadrantNodes =
+        Map<BoardQuadrant, Map<String, BastionNode>>.from(state.allyQuadrantNodes);
+    final currentQ = Map<String, BastionNode>.from(updatedQuadrantNodes[vm.localQuadrant] ?? {});
+    currentQ[key] = node;
+    updatedQuadrantNodes[vm.localQuadrant] = currentQ;
+
+    final updatedAllyPlayers = state.allyPlayers.map((p) {
+      if (p.quadrant == vm.localQuadrant) {
+        return p.copyWith(nodes: currentQ);
+      }
+      return p;
+    }).toList();
+
+    vm.updateState(state.copyWith(
       tokens: state.tokens - node.tokenCost,
       nodes: updatedNodes,
+      allyQuadrantNodes: updatedQuadrantNodes,
+      allyPlayers: updatedAllyPlayers,
     ));
     debugPrint('[DismantleCommand] Desfeita desmontagem de ($key). Gastos novamente ${node.tokenCost} Tokens');
   }

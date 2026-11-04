@@ -30,6 +30,7 @@ class LobbyViewModel extends ChangeNotifier {
 
   MatchmakingPhase _matchmakingPhase = MatchmakingPhase.idle;
   int _matchmakingElapsedSeconds = 0;
+  int _countdownSeconds = 0;
   Timer? _matchmakingTicker;
   Timer? _matchmakingTransitionTimer;
   bool _isDisposed = false;
@@ -58,6 +59,7 @@ class LobbyViewModel extends ChangeNotifier {
   bool get isInWaitingRoom => _activeWaitingRoom != null;
   MatchmakingPhase get matchmakingPhase => _matchmakingPhase;
   int get matchmakingElapsedSeconds => _matchmakingElapsedSeconds;
+  int get countdownSeconds => _countdownSeconds;
   bool get isSearchingMatch => _matchmakingPhase.isActive;
 
   int get maxPartySlots => _is2v2 ? 4 : 2;
@@ -225,12 +227,39 @@ class LobbyViewModel extends ChangeNotifier {
     });
   }
 
+  /// Inicia contagem regressiva 3... 2... 1... sincronizada entre todos os operadores.
+  void startCountdownLaunch({required String code, required VoidCallback onComplete}) {
+    if (_countdownSeconds > 0) return;
+    _cancelTimers();
+    _countdownSeconds = 3;
+    _matchmakingPhase = MatchmakingPhase.launching;
+    notifyListeners();
+
+    _matchmakingTicker = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_isDisposed) {
+        timer.cancel();
+        return;
+      }
+      _countdownSeconds--;
+      if (_countdownSeconds <= 0) {
+        timer.cancel();
+        _cancelTimers();
+        _matchmakingPhase = MatchmakingPhase.idle;
+        notifyListeners();
+        onComplete();
+      } else {
+        notifyListeners();
+      }
+    });
+  }
+
   /// Cancelamento de busca de partida pelo usuário.
   void cancelMatchmaking() {
     if (_matchmakingPhase == MatchmakingPhase.idle) return;
     _cancelTimers();
     _matchmakingPhase = MatchmakingPhase.idle;
     _matchmakingElapsedSeconds = 0;
+    _countdownSeconds = 0;
     notifyListeners();
   }
 
@@ -289,11 +318,12 @@ class LobbyViewModel extends ChangeNotifier {
               (data['match'] is Map && data['match']['id'] == currentCode))) {
         _activeWaitingRoom = _activeWaitingRoom?.copyWith(status: 'IN_PROGRESS');
         notifyListeners();
-        if (_matchmakingPhase == MatchmakingPhase.idle) {
-          startMatchmaking(onReadyToLaunch: () {
+        startCountdownLaunch(
+          code: currentCode,
+          onComplete: () {
             onMatchLaunchRequested?.call(currentCode);
-          });
-        }
+          },
+        );
       }
     });
 
@@ -348,10 +378,13 @@ class LobbyViewModel extends ChangeNotifier {
     if (currentRoom != null) {
       _socketService.connect();
       _socketService.emit('start_match', {'matchId': currentRoom.code});
-      _repository.startMatch(currentRoom.code);
-      startMatchmaking(onReadyToLaunch: () {
-        onReadyToLaunch(currentRoom.code);
-      });
+      if (!_socketService.isConnected) {
+        _repository.startMatch(currentRoom.code);
+        startCountdownLaunch(
+          code: currentRoom.code,
+          onComplete: () => onReadyToLaunch(currentRoom.code),
+        );
+      }
     }
   }
 
@@ -421,10 +454,17 @@ class LobbyViewModel extends ChangeNotifier {
         ? _partyMembers.first.replaceAll(' (Host)', '')
         : 'Operador_Convidado';
 
+    bool joinedViaApi = false;
     try {
-      await _repository.joinRoom(room.code);
+      joinedViaApi = await _repository.joinRoom(room.code, team: 'RED_TEAM');
     } catch (e) {
       debugPrint('[LobbyViewModel] Erro ao sincronizar join com backend: $e');
+    }
+
+    if (!joinedViaApi && _repository is LobbyApiRepository) {
+      debugPrint('[LobbyViewModel] Falha ao entrar na sala ${room.code} via API (sala cheia ou inexistente)');
+      await refreshPublicRooms();
+      return false;
     }
 
     // Registra conexão no socket da partida como Adversário (Red Team)
@@ -538,6 +578,7 @@ class LobbyViewModel extends ChangeNotifier {
     _matchmakingTicker = null;
     _matchmakingTransitionTimer?.cancel();
     _matchmakingTransitionTimer = null;
+    _countdownSeconds = 0;
   }
 
   @override

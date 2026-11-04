@@ -47,10 +47,14 @@ class _GameLobbyScreenState extends State<GameLobbyScreen> {
   void _onLaunchArena([String? matchCode]) {
     if (!mounted) return;
     final code = matchCode ?? _viewModel.activeWaitingRoom?.code;
+    final extraData = {
+      'matchCode': code,
+      'room': _viewModel.activeWaitingRoom,
+    };
     if (code != null && code.isNotEmpty) {
-      context.go('/arena?matchId=$code', extra: code);
+      context.go('/arena?matchId=$code', extra: extraData);
     } else {
-      context.go('/arena');
+      context.go('/arena', extra: extraData);
     }
   }
 
@@ -112,6 +116,7 @@ class _GameLobbyScreenState extends State<GameLobbyScreen> {
               MatchmakingOverlay(
                 phase: _viewModel.matchmakingPhase,
                 elapsedSeconds: _viewModel.matchmakingElapsedSeconds,
+                countdownSeconds: _viewModel.countdownSeconds,
                 onCancel: _viewModel.cancelMatchmaking,
                 mode: _viewModel.currentMode,
               ),

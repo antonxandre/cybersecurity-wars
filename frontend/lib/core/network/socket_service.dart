@@ -21,6 +21,8 @@ class SocketService {
   final StreamController<SocketConnectionStatus> _statusController =
       StreamController<SocketConnectionStatus>.broadcast();
 
+  final Map<String, List<void Function(dynamic data)>> _registeredListeners = {};
+
   SocketService({this.namespace = '/arena'});
 
   SocketConnectionStatus get status => _status;
@@ -31,10 +33,21 @@ class SocketService {
   /// Estabelece a conexão WebSocket com o gateway NestJS.
   void connect() {
     if (_socket != null && _socket!.connected) return;
+    if (_status == SocketConnectionStatus.connecting) return;
 
     _updateStatus(SocketConnectionStatus.connecting);
     final baseUrl = ApiConfig.wsBaseUrl;
     final token = AuthService.instance.accessToken;
+
+    if (_socket != null) {
+      if (token != null && token.isNotEmpty) {
+        _socket?.io.options?['auth'] = {'token': token};
+        _socket?.auth = {'token': token};
+      }
+      _attachRegisteredListeners();
+      _socket?.connect();
+      return;
+    }
 
     try {
       final opts = io.OptionBuilder()
@@ -53,29 +66,40 @@ class SocketService {
       final uri = '$baseUrl$namespace';
       debugPrint('[SocketService] Conectando ao namespace: $uri');
 
-      _socket = io.io(uri, opts.build());
+      final socket = io.io(uri, opts.build());
+      _socket = socket;
 
-      _socket?.onConnect((_) {
-        debugPrint('[SocketService] Conectado ao namespace $namespace (ID: ${_socket?.id})');
+      // Anexa imediatamente listeners já registrados antes da conexão
+      _attachRegisteredListeners();
+
+      socket.onConnect((_) {
+        debugPrint('[SocketService] Conectado ao namespace $namespace (ID: ${socket.id})');
         _updateStatus(SocketConnectionStatus.connected);
+        _attachRegisteredListeners();
       });
 
-      _socket?.onDisconnect((reason) {
+      socket.onDisconnect((reason) {
         debugPrint('[SocketService] Desconectado de $namespace: $reason');
         _updateStatus(SocketConnectionStatus.disconnected);
       });
 
-      _socket?.onConnectError((err) {
+      socket.onConnectError((err) {
         debugPrint('[SocketService] Erro de conexão em $namespace: $err');
         _updateStatus(SocketConnectionStatus.error);
       });
 
-      _socket?.on('reconnecting', (attempt) {
+      socket.on('reconnect', (_) {
+        debugPrint('[SocketService] Reconectado com sucesso a $namespace');
+        _updateStatus(SocketConnectionStatus.connected);
+        _attachRegisteredListeners();
+      });
+
+      socket.on('reconnecting', (attempt) {
         debugPrint('[SocketService] Reconectando a $namespace (tentativa #$attempt)...');
         _updateStatus(SocketConnectionStatus.reconnecting);
       });
 
-      _socket?.connect();
+      socket.connect();
     } catch (e) {
       debugPrint('[SocketService] Exceção ao inicializar socket: $e');
       _updateStatus(SocketConnectionStatus.error);
@@ -84,12 +108,29 @@ class SocketService {
 
   /// Registra um listener para eventos recebidos do servidor.
   void on(String event, void Function(dynamic data) handler) {
+    _registeredListeners.putIfAbsent(event, () => []).add(handler);
     _socket?.on(event, handler);
   }
 
   /// Remove listener de evento.
-  void off(String event) {
-    _socket?.off(event);
+  void off(String event, [void Function(dynamic data)? handler]) {
+    if (handler != null) {
+      _registeredListeners[event]?.remove(handler);
+      _socket?.off(event, handler);
+    } else {
+      _registeredListeners.remove(event);
+      _socket?.off(event);
+    }
+  }
+
+  void _attachRegisteredListeners() {
+    if (_socket == null) return;
+    _registeredListeners.forEach((event, handlers) {
+      for (final handler in handlers) {
+        _socket!.off(event, handler);
+        _socket!.on(event, handler);
+      }
+    });
   }
 
   /// Emite um evento para o servidor com payload opcional e callback de confirmação (Ack).
@@ -104,11 +145,9 @@ class SocketService {
     }
   }
 
-  /// Encerra a conexão WebSocket.
+  /// Encerra a conexão WebSocket sem perder listeners registrados.
   void disconnect() {
     _socket?.disconnect();
-    _socket?.dispose();
-    _socket = null;
     _updateStatus(SocketConnectionStatus.disconnected);
   }
 
@@ -120,7 +159,11 @@ class SocketService {
   }
 
   void dispose() {
-    disconnect();
+    _registeredListeners.clear();
+    _socket?.disconnect();
+    _socket?.dispose();
+    _socket = null;
+    _updateStatus(SocketConnectionStatus.disconnected);
     _statusController.close();
   }
 }

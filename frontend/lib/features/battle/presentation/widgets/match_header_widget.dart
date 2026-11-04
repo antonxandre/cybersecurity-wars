@@ -23,7 +23,8 @@ class MatchHeaderWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLowTime = state.remainingSeconds <= 10 && state.phase == MatchPhase.preparation;
+    final isLowTime =
+        state.remainingSeconds <= 10 && state.phase == MatchPhase.preparation;
     final isBattlePhase = state.phase == MatchPhase.battle;
 
     return RepaintBoundary(
@@ -74,7 +75,8 @@ class MatchHeaderWidget extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
                               color: AppColors.cardSurface,
                               borderRadius: BorderRadius.zero,
@@ -83,10 +85,11 @@ class MatchHeaderWidget extends StatelessWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.shield_outlined, size: 14, color: AppColors.blueTeam),
+                                const Icon(Icons.shield_outlined,
+                                    size: 14, color: AppColors.blueTeam),
                                 const SizedBox(width: 6),
                                 Text(
-                                  'PROMPTSEC ARENA (4v4)',
+                                  'Cyber Arena (4v4)',
                                   style: AppTypography.codeSmall.copyWith(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
@@ -109,12 +112,15 @@ class MatchHeaderWidget extends StatelessWidget {
                               style: OutlinedButton.styleFrom(
                                 side: const BorderSide(color: AppColors.border),
                                 backgroundColor: AppColors.cardSurface,
-                                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                                shape: const RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.zero),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 7),
                                 visualDensity: VisualDensity.compact,
                               ),
                               onPressed: onUndoBuild,
-                              icon: const Icon(Icons.undo_rounded, size: 16, color: AppColors.textSecondary),
+                              icon: const Icon(Icons.undo_rounded,
+                                  size: 16, color: AppColors.textSecondary),
                               label: Text(
                                 'DESFAZER',
                                 style: AppTypography.codeSmall.copyWith(
@@ -129,14 +135,17 @@ class MatchHeaderWidget extends StatelessWidget {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.blueTeam,
                                 foregroundColor: AppColors.background,
-                                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                                shape: const RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.zero),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 7),
                                 visualDensity: VisualDensity.compact,
                                 elevation: 4,
                                 shadowColor: AppColors.blueTeamGlow,
                               ),
                               onPressed: onReadyPressed,
-                              icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                              icon: const Icon(Icons.play_arrow_rounded,
+                                  size: 18),
                               label: Text(
                                 'PRONTO',
                                 style: AppTypography.codeSmall.copyWith(
@@ -199,20 +208,24 @@ class MatchHeaderWidget extends StatelessWidget {
 
                       // 2. Núcleo Central: Timer Hexagonal / Retangular e Indicador de Onda
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 6),
                         decoration: BoxDecoration(
                           color: AppColors.cardSurface,
                           borderRadius: BorderRadius.zero,
                           border: Border.all(
                             color: isLowTime
                                 ? AppColors.redTeam
-                                : (isBattlePhase ? AppColors.redTeamSecondary : AppColors.borderGlow),
+                                : (isBattlePhase
+                                    ? AppColors.redTeamSecondary
+                                    : AppColors.borderGlow),
                             width: 1.5,
                           ),
                           boxShadow: [
                             if (isLowTime)
                               BoxShadow(
-                                color: AppColors.redTeam.withValues(alpha: 0.35),
+                                color:
+                                    AppColors.redTeam.withValues(alpha: 0.35),
                                 blurRadius: 10,
                                 spreadRadius: 1,
                               ),
@@ -227,13 +240,17 @@ class MatchHeaderWidget extends StatelessWidget {
                                 Icon(
                                   Icons.timer_outlined,
                                   size: 16,
-                                  color: isLowTime ? AppColors.redTeam : AppColors.cpuClock,
+                                  color: isLowTime
+                                      ? AppColors.redTeam
+                                      : AppColors.cpuClock,
                                 ),
                                 const SizedBox(width: 5),
                                 Text(
                                   '${state.remainingSeconds}s',
                                   style: AppTypography.codeMedium.copyWith(
-                                    color: isLowTime ? AppColors.redTeam : AppColors.cpuClock,
+                                    color: isLowTime
+                                        ? AppColors.redTeam
+                                        : AppColors.cpuClock,
                                     fontWeight: FontWeight.w900,
                                     fontSize: 18,
                                     letterSpacing: 0.5,

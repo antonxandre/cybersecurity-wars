@@ -31,6 +31,80 @@ class BattleViewModel extends ChangeNotifier {
       StreamController.broadcast();
   Stream<({GameCard card, int lane})> get flameDispatches => _flameDispatches.stream;
 
+  /// Callback para sincronização remota de rounds e fases (PvP multiplayer)
+  void Function(MatchPhase phase, int remainingSeconds, int currentWave)? onPhaseTransition;
+
+  /// Quadrante ativo controlado pelo jogador local (Top-Left para Host, Bottom-Left para Guest)
+  BoardQuadrant localQuadrant = BoardQuadrant.topLeft;
+
+  /// Define o quadrante do jogador local
+  void setLocalQuadrant(BoardQuadrant quadrant) {
+    localQuadrant = quadrant;
+    notifyListeners();
+  }
+
+  /// Retorna os nós alocados para qualquer quadrante específico
+  Map<String, BastionNode> getQuadrantNodes(BoardQuadrant quadrant) {
+    return currentState.getNodesForQuadrant(quadrant);
+  }
+
+  /// Insere ou atualiza um nó defensivo em um quadrante específico
+  void setQuadrantNode(BoardQuadrant quadrant, BastionNode node) {
+    final current = currentState;
+    final key = '${node.gridX},${node.gridY}';
+
+    final updatedQuadrantNodes =
+        Map<BoardQuadrant, Map<String, BastionNode>>.from(current.allyQuadrantNodes);
+    final currentQ = Map<String, BastionNode>.from(updatedQuadrantNodes[quadrant] ?? {});
+    currentQ[key] = node;
+    updatedQuadrantNodes[quadrant] = currentQ;
+
+    final updatedAllyPlayers = current.allyPlayers.map((p) {
+      if (p.quadrant == quadrant) {
+        return p.copyWith(nodes: currentQ);
+      }
+      return p;
+    }).toList();
+
+    // Se for o quadrante do jogador local, sincroniza também current.nodes
+    final updatedLocalNodes = quadrant == localQuadrant
+        ? (Map<String, BastionNode>.from(current.nodes)..[key] = node)
+        : current.nodes;
+
+    updateState(current.copyWith(
+      nodes: updatedLocalNodes,
+      allyQuadrantNodes: updatedQuadrantNodes,
+      allyPlayers: updatedAllyPlayers,
+    ));
+  }
+
+  /// Remove um nó defensivo de um quadrante específico
+  void removeQuadrantNode(BoardQuadrant quadrant, String key) {
+    final current = currentState;
+    final updatedQuadrantNodes =
+        Map<BoardQuadrant, Map<String, BastionNode>>.from(current.allyQuadrantNodes);
+    final currentQ = Map<String, BastionNode>.from(updatedQuadrantNodes[quadrant] ?? {});
+    currentQ.remove(key);
+    updatedQuadrantNodes[quadrant] = currentQ;
+
+    final updatedAllyPlayers = current.allyPlayers.map((p) {
+      if (p.quadrant == quadrant) {
+        return p.copyWith(nodes: currentQ);
+      }
+      return p;
+    }).toList();
+
+    final updatedLocalNodes = quadrant == localQuadrant
+        ? (Map<String, BastionNode>.from(current.nodes)..remove(key))
+        : current.nodes;
+
+    updateState(current.copyWith(
+      nodes: updatedLocalNodes,
+      allyQuadrantNodes: updatedQuadrantNodes,
+      allyPlayers: updatedAllyPlayers,
+    ));
+  }
+
   BattleViewModel() {
     executor = CommandExecutor(this);
     _initializeInitialDeckAndHand();
@@ -107,9 +181,24 @@ class BattleViewModel extends ChangeNotifier {
     final updatedNodes = Map<String, BastionNode>.from(current.nodes)..[key] = upgradedNode;
     final updatedEconomy = current.economy.spendTokens(cost);
 
+    final updatedQuadrantNodes =
+        Map<BoardQuadrant, Map<String, BastionNode>>.from(current.allyQuadrantNodes);
+    final currentQ = Map<String, BastionNode>.from(updatedQuadrantNodes[localQuadrant] ?? {});
+    currentQ[key] = upgradedNode;
+    updatedQuadrantNodes[localQuadrant] = currentQ;
+
+    final updatedAllyPlayers = current.allyPlayers.map((p) {
+      if (p.quadrant == localQuadrant) {
+        return p.copyWith(nodes: currentQ);
+      }
+      return p;
+    }).toList();
+
     updateState(current.copyWith(
       economy: updatedEconomy,
       nodes: updatedNodes,
+      allyQuadrantNodes: updatedQuadrantNodes,
+      allyPlayers: updatedAllyPlayers,
     ));
 
     sendSystemMessage(
@@ -126,10 +215,12 @@ class BattleViewModel extends ChangeNotifier {
   /// Inicia a fase de combate em tempo real
   void startBattlePhase() {
     executor.clearHistory();
+    const secs = 60;
     updateState(currentState.copyWith(
       phase: MatchPhase.battle,
-      remainingSeconds: 60,
+      remainingSeconds: secs,
     ));
+    onPhaseTransition?.call(MatchPhase.battle, secs, currentState.currentWave);
   }
 
   /// Realiza upgrade de CPU no Mainframe Central
@@ -234,7 +325,13 @@ class BattleViewModel extends ChangeNotifier {
   /// Adiciona mensagem de chat recebida via WebSocket remoto evitando duplicações
   void addExternalChatMessage(ChatMessage message) {
     final current = currentState;
-    if (current.chatMessages.any((m) => m.id == message.id)) return;
+    final isDuplicate = current.chatMessages.any((m) =>
+        m.id == message.id ||
+        (m.text.trim() == message.text.trim() &&
+            (m.senderName == message.senderName ||
+                (m.senderName.contains('Jogador') && message.senderName.isNotEmpty)) &&
+            m.timestamp.difference(message.timestamp).inSeconds.abs() <= 4));
+    if (isDuplicate) return;
     updateState(current.copyWith(
       chatMessages: [...current.chatMessages, message],
     ));
@@ -320,14 +417,16 @@ class BattleViewModel extends ChangeNotifier {
       // Avança a onda, paga a renda de Tokens e retorna à fase de preparação
       final nextWave = completedWave + 1;
       final updatedEconomy = current.economy.applyRoundIncome();
+      const prepSecs = 35;
       updateState(current.copyWith(
         currentWave: nextWave,
         phase: MatchPhase.preparation,
-        remainingSeconds: 35,
+        remainingSeconds: prepSecs,
         tokens: updatedEconomy.tokens,
         economy: updatedEconomy,
         queuedAttacksNextRound: [],
       ));
+      onPhaseTransition?.call(MatchPhase.preparation, prepSecs, nextWave);
       debugPrint('[BattleVM] Onda $completedWave superada! Retornando à preparação. Renda de Tokens paga: ${updatedEconomy.totalIncomeTokens}');
     }
   }
@@ -369,11 +468,19 @@ class BattleViewModel extends ChangeNotifier {
     if (cleanText.isEmpty) return;
 
     final current = currentState;
-    final localPlayer = current.allyPlayers.isNotEmpty ? current.allyPlayers.first : null;
+    final localPlayer = current.allyPlayers.isNotEmpty
+        ? current.allyPlayers.firstWhere(
+            (p) => p.quadrant == localQuadrant,
+            orElse: () => current.allyPlayers.first,
+          )
+        : null;
+
+    final actualSenderName = senderName ?? localPlayer?.name ?? 'Operador';
+    final messageId = 'msg_${DateTime.now().millisecondsSinceEpoch}_${actualSenderName.hashCode.abs()}';
 
     final message = ChatMessage.player(
-      senderId: senderId ?? localPlayer?.id ?? 'player_blue_1',
-      senderName: senderName ?? localPlayer?.name ?? 'Jogador 1 (Você)',
+      senderId: senderId ?? messageId,
+      senderName: actualSenderName,
       senderColor: senderColor ?? localPlayer?.color ?? AppColors.blueTeam,
       channel: targetChannel,
       text: cleanText,
@@ -382,9 +489,6 @@ class BattleViewModel extends ChangeNotifier {
     updateState(current.copyWith(
       chatMessages: [...current.chatMessages, message],
     ));
-
-    // Resposta tática simulada de bots para manter o dinamismo da arena
-    _simulateBotChatResponse(cleanText, targetChannel);
   }
 
   /// Dispara um anúncio automatizado de Sistema para todos os participantes (ex: Upgrades)
@@ -394,67 +498,6 @@ class BattleViewModel extends ChangeNotifier {
     updateState(current.copyWith(
       chatMessages: [...current.chatMessages, message],
     ));
-  }
-
-  /// Simula respostas contextuais de aliados ou oponentes (Warcraft 3 / LoL bot interaction)
-  void _simulateBotChatResponse(String playerText, ChatChannel channel) {
-    if (_isDisposed) return;
-    final lower = playerText.toLowerCase();
-
-    Timer(const Duration(milliseconds: 900), () {
-      if (_isDisposed) return;
-      final current = currentState;
-
-      if (channel == ChatChannel.team) {
-        String botReply;
-        TeamPlayerModel bot;
-        if (lower.contains('mainframe') || lower.contains('defend') || lower.contains('proteger')) {
-          bot = current.allyPlayers.length > 1 ? current.allyPlayers[1] : current.allyPlayers.first;
-          botReply = 'Entendido! Concentrando defesas no perímetro do Mainframe.';
-        } else if (lower.contains('bit') || lower.contains('ouro') || lower.contains('eco') || lower.contains('miner')) {
-          bot = current.allyPlayers.length > 2 ? current.allyPlayers[2] : current.allyPlayers.first;
-          botReply = 'Alocando novos mineradores para maximizar o rendimento.';
-        } else if (lower.contains('atac') || lower.contains('wave') || lower.contains('mandar') || lower.contains('virus')) {
-          bot = current.allyPlayers.length > 3 ? current.allyPlayers[3] : current.allyPlayers.first;
-          botReply = 'Preparando malwares para sobrecarregar as rotas inimigas no próximo round.';
-        } else {
-          bot = current.allyPlayers.length > 1 ? current.allyPlayers[1] : current.allyPlayers.first;
-          botReply = 'Copiado! Mantendo vigilância no setor.';
-        }
-
-        final botMsg = ChatMessage.player(
-          senderId: bot.id,
-          senderName: bot.name,
-          senderColor: bot.color,
-          channel: ChatChannel.team,
-          text: botReply,
-        );
-
-        updateState(current.copyWith(
-          chatMessages: [...current.chatMessages, botMsg],
-        ));
-      } else if (channel == ChatChannel.all) {
-        final rival = current.opponentPlayers.isNotEmpty ? current.opponentPlayers.first : null;
-        if (rival == null) return;
-
-        String rivalReply = 'Nossos exploits vão encontrar qualquer brecha no seu firewall.';
-        if (lower.contains('gg') || lower.contains('bom jogo') || lower.contains('gl') || lower.contains('hf')) {
-          rivalReply = 'Boa partida! Que vença o melhor cluster.';
-        }
-
-        final rivalMsg = ChatMessage.player(
-          senderId: rival.id,
-          senderName: '${rival.name} (Adversário)',
-          senderColor: rival.color,
-          channel: ChatChannel.all,
-          text: rivalReply,
-        );
-
-        updateState(current.copyWith(
-          chatMessages: [...current.chatMessages, rivalMsg],
-        ));
-      }
-    });
   }
 
   /// Reinicia a partida para o estado inicial

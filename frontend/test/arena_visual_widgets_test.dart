@@ -7,7 +7,8 @@ import 'package:promptsec_arena_front/features/battle/presentation/widgets/match
 import 'package:promptsec_arena_front/features/battle/presentation/widgets/tactical_notification_toast.dart';
 
 void main() {
-  testWidgets('MatchHeaderWidget renders MOBA scoreboard and mainframe bars', (tester) async {
+  testWidgets('MatchHeaderWidget renders MOBA scoreboard and mainframe bars',
+      (tester) async {
     tester.view.physicalSize = const Size(1920, 1080);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -35,7 +36,7 @@ void main() {
     // 1. Verifica presença do placar MOBA (Mainframes e timer)
     expect(find.text('MAINFRAME ALIADO'), findsOneWidget);
     expect(find.text('MAINFRAME RIVAL'), findsOneWidget);
-    expect(find.text('PROMPTSEC ARENA (4v4)'), findsOneWidget);
+    expect(find.text('Cyber Arena (4v4)'), findsOneWidget);
     expect(find.text('ONDA 1/10'), findsOneWidget);
 
     // 2. Verifica botões de ação da fase de preparação
@@ -50,7 +51,8 @@ void main() {
     expect(undoPressed, isTrue);
   });
 
-  testWidgets('TacticalNotificationToast displays item and triggers dismiss', (tester) async {
+  testWidgets('TacticalNotificationToast displays item and triggers dismiss',
+      (tester) async {
     bool dismissed = false;
     final item = TacticalNotificationItem(
       id: 'test-1',
@@ -82,7 +84,8 @@ void main() {
     expect(dismissed, isTrue);
   });
 
-  testWidgets('ArenaAtmosphereOverlay renders without intercepting pointer', (tester) async {
+  testWidgets('ArenaAtmosphereOverlay renders without intercepting pointer',
+      (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(

@@ -126,16 +126,6 @@ class TeamPlayerModel {
           teamId: 'team_blue',
           quadrant: BoardQuadrant.bottomLeft,
           color: Color(0xFF9D00FF), // Púrpura Neon
-          nodes: {
-            'node_j2_1': BastionNode(
-              id: 'node_j2_1',
-              name: 'Firewall',
-              type: BastionNodeType.firewall,
-              gridX: 1,
-              gridY: 1,
-              tokenCost: 40,
-            ),
-          },
         ),
         TeamPlayerModel(
           id: 'player_blue_3',
@@ -143,16 +133,6 @@ class TeamPlayerModel {
           teamId: 'team_blue',
           quadrant: BoardQuadrant.topRight,
           color: Color(0xFF00FF66), // Esmeralda Neon
-          nodes: {
-            'node_j3_1': BastionNode(
-              id: 'node_j3_1',
-              name: 'Proxy',
-              type: BastionNodeType.proxy,
-              gridX: 2,
-              gridY: 2,
-              tokenCost: 50,
-            ),
-          },
         ),
         TeamPlayerModel(
           id: 'player_blue_4',
@@ -160,16 +140,6 @@ class TeamPlayerModel {
           teamId: 'team_blue',
           quadrant: BoardQuadrant.bottomRight,
           color: Color(0xFFFFCC00), // Âmbar Dourado
-          nodes: {
-            'node_j4_1': BastionNode(
-              id: 'node_j4_1',
-              name: 'IDS',
-              type: BastionNodeType.ids,
-              gridX: 1,
-              gridY: 2,
-              tokenCost: 65,
-            ),
-          },
         ),
       ];
 

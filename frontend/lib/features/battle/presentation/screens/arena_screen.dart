@@ -7,12 +7,13 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../game/cyber_arena_game.dart';
 import '../../../auth/domain/services/auth_service.dart';
+import '../../domain/models/bastion_node.dart';
 import '../../domain/models/chat_message.dart';
 import '../../domain/models/match_state.dart';
+import '../../domain/models/team_player_model.dart';
 import '../../domain/models/tactical_unit_info.dart';
 import '../../domain/models/tactical_virus_model.dart';
 import '../../domain/services/arena_socket_service.dart';
-import '../../domain/services/scripted_bot_service.dart';
 import '../viewmodels/battle_view_model.dart';
 import '../widgets/arena_atmosphere_overlay.dart';
 import '../widgets/match_header_widget.dart';
@@ -22,6 +23,7 @@ import '../widgets/node_context_popup.dart';
 import '../widgets/tactical_notification_toast.dart';
 import '../widgets/tactical_operations_panel.dart';
 import '../widgets/tactical_team_chat_widget.dart';
+import '../../../lobby/domain/models/lobby_models.dart';
 import '../widgets/tactical_unit_info_hud.dart';
 import '../widgets/team_resources_panel.dart';
 import '../widgets/virus_dispatcher_dock.dart';
@@ -29,7 +31,8 @@ import '../widgets/virus_dispatcher_dock.dart';
 /// Tela principal da Arena de Jogo (combinação do Flame Game Canvas e Overlays Flutter).
 class ArenaScreen extends StatefulWidget {
   final String? matchId;
-  const ArenaScreen({super.key, this.matchId});
+  final dynamic initialExtra;
+  const ArenaScreen({super.key, this.matchId, this.initialExtra});
 
   @override
   State<ArenaScreen> createState() => _ArenaScreenState();
@@ -38,13 +41,18 @@ class ArenaScreen extends StatefulWidget {
 class _ArenaScreenState extends State<ArenaScreen> {
   late final BattleViewModel _viewModel;
   late final CyberArenaGame _game;
-  final ScriptedBotService _botService = ScriptedBotService();
   final GlobalKey<TacticalTeamChatWidgetState> _chatKey =
       GlobalKey<TacticalTeamChatWidgetState>();
 
   ArenaSocketService? _arenaSocket;
   StreamSubscription? _virusSub;
   StreamSubscription? _chatSub;
+  StreamSubscription? _tacticalSub;
+  StreamSubscription? _stateSub;
+
+  BoardQuadrant _localQuadrant = BoardQuadrant.topLeft;
+  int _localSlot = 0;
+  bool _isGameInitialized = false;
 
   int? _selectedGridX;
   int? _selectedGridY;
@@ -55,24 +63,150 @@ class _ArenaScreenState extends State<ArenaScreen> {
   TacticalNotificationItem? _activeNotification;
   Timer? _toastTimer;
 
+  void _resolveLocalSlotAndQuadrant(dynamic matchOrRoomData) {
+    if (matchOrRoomData == null) return;
+    final currentUser = AuthService.instance.currentUser;
+    final myUsername = currentUser?.username;
+
+    // Se matchOrRoomData for um PublicRoom
+    if (matchOrRoomData is PublicRoom) {
+      final isHost = (myUsername != null &&
+              matchOrRoomData.host.toLowerCase() == myUsername.toLowerCase()) ||
+          (matchOrRoomData.playerNames.isNotEmpty &&
+              myUsername != null &&
+              matchOrRoomData.playerNames.first.toLowerCase() == myUsername.toLowerCase());
+      final slot = isHost ? 0 : 1;
+      _applySlotAndQuadrant(slot, matchOrRoomData.playerNames);
+      return;
+    }
+
+    if (matchOrRoomData is Map) {
+      final bluePlayers = matchOrRoomData['bluePlayers'];
+      final redPlayers = matchOrRoomData['redPlayers'];
+
+      if (bluePlayers is List && bluePlayers.isNotEmpty) {
+        final names = bluePlayers
+            .map((p) => p is Map ? p['username']?.toString() ?? '' : p.toString())
+            .toList();
+        final idx = myUsername != null
+            ? names.indexWhere((n) => n.toLowerCase() == myUsername.toLowerCase())
+            : -1;
+        if (idx != -1) {
+          _applySlotAndQuadrant(idx, names, isBlue: true);
+          return;
+        }
+      }
+
+      if (redPlayers is List && redPlayers.isNotEmpty) {
+        final names = redPlayers
+            .map((p) => p is Map ? p['username']?.toString() ?? '' : p.toString())
+            .toList();
+        final idx = myUsername != null
+            ? names.indexWhere((n) => n.toLowerCase() == myUsername.toLowerCase())
+            : -1;
+        if (idx != -1) {
+          _applySlotAndQuadrant(idx, names, isBlue: false);
+          return;
+        }
+      }
+
+      final playerNames = matchOrRoomData['playerNames'] as List?;
+      if (playerNames != null && playerNames.isNotEmpty && myUsername != null) {
+        final names = playerNames.map((e) => e.toString()).toList();
+        final idx = names.indexWhere((n) => n.toLowerCase() == myUsername.toLowerCase());
+        if (idx != -1) {
+          _applySlotAndQuadrant(idx, names);
+          return;
+        }
+      }
+
+      final host = matchOrRoomData['host']?.toString() ??
+          matchOrRoomData['hostUsername']?.toString();
+      if (host != null && myUsername != null) {
+        final isHost = host.toLowerCase() == myUsername.toLowerCase();
+        _applySlotAndQuadrant(isHost ? 0 : 1, [host, if (!isHost) myUsername]);
+        return;
+      }
+    }
+  }
+
+  void _applySlotAndQuadrant(int slot, List<String> names, {bool isBlue = true}) {
+    final quadrant = isBlue
+        ? (slot == 1 ? BoardQuadrant.bottomLeft : BoardQuadrant.topLeft)
+        : (slot == 1 ? BoardQuadrant.bottomRight : BoardQuadrant.topRight);
+
+    _localSlot = slot;
+    _localQuadrant = quadrant;
+    _viewModel.setLocalQuadrant(quadrant);
+
+    if (_isGameInitialized) {
+      _game.setLocalQuadrant(quadrant);
+    }
+
+    final current = _viewModel.currentState;
+    final updatedAllyPlayers = current.allyPlayers.map((p) {
+      if (p.quadrant == BoardQuadrant.topLeft && names.isNotEmpty) {
+        return p.copyWith(name: names[0]);
+      } else if (p.quadrant == BoardQuadrant.bottomLeft && names.length > 1) {
+        return p.copyWith(name: names[1]);
+      }
+      return p;
+    }).toList();
+
+    _viewModel.updateState(current.copyWith(allyPlayers: updatedAllyPlayers));
+    if (_isGameInitialized) {
+      _game.updateSectorPlayers(bluePlayers: updatedAllyPlayers);
+    }
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _viewModel = BattleViewModel();
+
     _game = CyberArenaGame(
       viewModel: _viewModel,
       onGridCellSelected: _onGridCellSelected,
+      localQuadrant: _localQuadrant,
     );
+    _isGameInitialized = true;
+
+    final extra = widget.initialExtra;
+    if (extra is Map && extra['room'] != null) {
+      _resolveLocalSlotAndQuadrant(extra['room']);
+    } else if (extra != null) {
+      _resolveLocalSlotAndQuadrant(extra);
+    }
+
+    // Sincronização remota de rounds e fases (PvP multiplayer)
+    _viewModel.onPhaseTransition = (phase, remainingSeconds, currentWave) {
+      if (widget.matchId != null && widget.matchId!.isNotEmpty) {
+        _arenaSocket?.sendTacticalAction(
+          matchId: widget.matchId!,
+          type: 'round:phase',
+          payload: {
+            'phase': phase.name,
+            'remainingSeconds': remainingSeconds,
+            'currentWave': currentWave,
+          },
+        );
+      }
+    };
 
     // Conexão e sincronização via WebSocket caso seja partida de sala (PvP)
     final matchId = widget.matchId;
     if (matchId != null && matchId.isNotEmpty) {
       _arenaSocket = ArenaSocketService();
-      final currentUser = AuthService.instance.currentUser;
-      _arenaSocket!.joinMatch(
-        matchId,
-        team: currentUser?.isBlueTeam == true ? 'BLUE_TEAM' : 'RED_TEAM',
-      );
+      _arenaSocket!.joinMatch(matchId);
+
+      _stateSub = _arenaSocket!.onMatchStateChanged.listen((stateData) {
+        if (!mounted) return;
+        _resolveLocalSlotAndQuadrant(stateData);
+      });
 
       _virusSub = _arenaSocket!.onOpponentVirusReceived.listen((virus) {
         if (!mounted) return;
@@ -88,6 +222,84 @@ class _ArenaScreenState extends State<ArenaScreen> {
       _chatSub = _arenaSocket!.onChatMessageReceived.listen((msg) {
         if (!mounted) return;
         _viewModel.addExternalChatMessage(msg);
+      });
+
+      _tacticalSub = _arenaSocket!.onTacticalActionReceived.listen((action) {
+        if (!mounted) return;
+        final type = action['type'] as String?;
+        final payload = action['payload'];
+        if (payload is! Map) return;
+        final payloadMap = Map<String, dynamic>.from(payload);
+
+        switch (type) {
+          case 'node:build':
+          case 'node:upgrade':
+            final node = BastionNode.fromJson(payloadMap);
+            final quadrantStr = payloadMap['quadrant'] as String?;
+            final slot = (payloadMap['slot'] as num?)?.toInt();
+            final targetQuadrant = quadrantStr != null
+                ? BoardQuadrant.values.firstWhere(
+                    (q) => q.name == quadrantStr,
+                    orElse: () => BoardQuadrant.topLeft,
+                  )
+                : (slot == 1 ? BoardQuadrant.bottomLeft : BoardQuadrant.topLeft);
+
+            _viewModel.setQuadrantNode(targetQuadrant, node);
+            break;
+
+          case 'node:dismantle':
+            final key = payloadMap['key']?.toString();
+            final quadrantStr = payloadMap['quadrant'] as String?;
+            final slot = (payloadMap['slot'] as num?)?.toInt();
+            final targetQuadrant = quadrantStr != null
+                ? BoardQuadrant.values.firstWhere(
+                    (q) => q.name == quadrantStr,
+                    orElse: () => BoardQuadrant.topLeft,
+                  )
+                : (slot == 1 ? BoardQuadrant.bottomLeft : BoardQuadrant.topLeft);
+
+            if (key != null) {
+              _viewModel.removeQuadrantNode(targetQuadrant, key);
+            }
+            break;
+
+          case 'mainframe:upgrade':
+            final target = payloadMap['target']?.toString();
+            final stat = payloadMap['stat']?.toString();
+            final current = _viewModel.currentState;
+            if (target == 'blue') {
+              var mf = current.mainframeBlue;
+              if (stat == 'cpu') mf = mf.upgradeCpu();
+              if (stat == 'ram') mf = mf.upgradeRam();
+              if (stat == 'disk') mf = mf.upgradeDisk();
+              _viewModel.updateState(current.copyWith(mainframeBlue: mf));
+            } else {
+              var mf = current.mainframeRed;
+              if (stat == 'cpu') mf = mf.upgradeCpu();
+              if (stat == 'ram') mf = mf.upgradeRam();
+              if (stat == 'disk') mf = mf.upgradeDisk();
+              _viewModel.updateState(current.copyWith(mainframeRed: mf));
+            }
+            break;
+
+          case 'round:phase':
+            final phaseName = payloadMap['phase']?.toString();
+            final secs = (payloadMap['remainingSeconds'] as num?)?.toInt();
+            final wave = (payloadMap['currentWave'] as num?)?.toInt();
+            final current = _viewModel.currentState;
+            if (phaseName != null) {
+              final phase = MatchPhase.values.firstWhere(
+                (p) => p.name == phaseName,
+                orElse: () => current.phase,
+              );
+              _viewModel.updateState(current.copyWith(
+                phase: phase,
+                remainingSeconds: secs ?? current.remainingSeconds,
+                currentWave: wave ?? current.currentWave,
+              ));
+            }
+            break;
+        }
       });
     }
 
@@ -119,42 +331,12 @@ class _ArenaScreenState extends State<ArenaScreen> {
     };
 
     _viewModel.state.addListener(_handleStateChange);
-
-    // Turno inicial da IA no Campo 2 (Oponente)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _executeBotTurn();
-    });
-  }
-
-  void _executeBotTurn() {
-    final state = _viewModel.state.value;
-    final botTurn =
-        _botService.executeWaveTurn(state.currentWave, state.opponentNodes);
-
-    if (botTurn.newOpponentNodes != state.opponentNodes ||
-        botTurn.upgradeCpu ||
-        botTurn.upgradeRam ||
-        botTurn.upgradeDisk) {
-      var nextState = state.copyWith(opponentNodes: botTurn.newOpponentNodes);
-      if (botTurn.upgradeCpu) {
-        nextState = nextState.copyWith(
-            mainframeRed: nextState.mainframeRed.upgradeCpu());
-      }
-      if (botTurn.upgradeRam) {
-        nextState = nextState.copyWith(
-            mainframeRed: nextState.mainframeRed.upgradeRam());
-      }
-      if (botTurn.upgradeDisk) {
-        nextState = nextState.copyWith(
-            mainframeRed: nextState.mainframeRed.upgradeDisk());
-      }
-      _viewModel.updateState(nextState);
-    }
   }
 
   void _onGridCellSelected(int gridX, int gridY) {
     final key = '$gridX,$gridY';
-    final existingNode = _viewModel.state.value.nodes[key];
+    final existingNode = _viewModel.getQuadrantNodes(_localQuadrant)[key] ??
+        _viewModel.state.value.nodes[key];
     final isPrepPhase = _viewModel.state.value.phase == MatchPhase.preparation;
 
     if (existingNode != null) {
@@ -169,9 +351,36 @@ class _ArenaScreenState extends State<ArenaScreen> {
           gridY: gridY,
           isPrepPhase: isPrepPhase,
           availableTokens: _viewModel.state.value.economy.tokens,
-          onUpgrade: () => _viewModel.upgradeBastionNode(existingNode),
+          onUpgrade: () {
+            final upgraded = existingNode.upgrade();
+            if (_viewModel.upgradeBastionNode(existingNode)) {
+              if (widget.matchId != null && widget.matchId!.isNotEmpty) {
+                _arenaSocket?.sendTacticalAction(
+                  matchId: widget.matchId!,
+                  type: 'node:upgrade',
+                  payload: {
+                    ...upgraded.toJson(),
+                    'quadrant': _localQuadrant.name,
+                    'slot': _localSlot,
+                  },
+                );
+              }
+            }
+          },
           onDismantle: () {
             _viewModel.dismantleNode(existingNode);
+            if (widget.matchId != null && widget.matchId!.isNotEmpty) {
+              _arenaSocket?.sendTacticalAction(
+                matchId: widget.matchId!,
+                type: 'node:dismantle',
+                payload: {
+                  'key': '$gridX,$gridY',
+                  'id': existingNode.id,
+                  'quadrant': _localQuadrant.name,
+                  'slot': _localSlot,
+                },
+              );
+            }
             _clearSelection();
           },
         );
@@ -268,6 +477,13 @@ class _ArenaScreenState extends State<ArenaScreen> {
       _viewModel.sendSystemMessage(
         '[MAINFRAME] Upgrade realizado: OVERCLOCK DE CPU (Lv. $nextLv)',
       );
+      if (widget.matchId != null && widget.matchId!.isNotEmpty) {
+        _arenaSocket?.sendTacticalAction(
+          matchId: widget.matchId!,
+          type: 'mainframe:upgrade',
+          payload: {'target': 'blue', 'stat': 'cpu'},
+        );
+      }
     }
   }
 
@@ -277,6 +493,13 @@ class _ArenaScreenState extends State<ArenaScreen> {
       _viewModel.sendSystemMessage(
         '[MAINFRAME] Upgrade realizado: EXPANSÃO DE RAM (Lv. $nextLv)',
       );
+      if (widget.matchId != null && widget.matchId!.isNotEmpty) {
+        _arenaSocket?.sendTacticalAction(
+          matchId: widget.matchId!,
+          type: 'mainframe:upgrade',
+          payload: {'target': 'blue', 'stat': 'ram'},
+        );
+      }
     }
   }
 
@@ -286,17 +509,18 @@ class _ArenaScreenState extends State<ArenaScreen> {
       _viewModel.sendSystemMessage(
         '[MAINFRAME] Upgrade realizado: BLINDAGEM DE DISCO (Lv. $nextLv)',
       );
+      if (widget.matchId != null && widget.matchId!.isNotEmpty) {
+        _arenaSocket?.sendTacticalAction(
+          matchId: widget.matchId!,
+          type: 'mainframe:upgrade',
+          payload: {'target': 'blue', 'stat': 'disk'},
+        );
+      }
     }
   }
 
   void _handleStateChange() {
     final state = _viewModel.state.value;
-
-    if (state.phase == MatchPhase.preparation) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _executeBotTurn();
-      });
-    }
 
     if (state.phase == MatchPhase.victory ||
         state.phase == MatchPhase.defeat) {
@@ -310,6 +534,8 @@ class _ArenaScreenState extends State<ArenaScreen> {
   void dispose() {
     _virusSub?.cancel();
     _chatSub?.cancel();
+    _tacticalSub?.cancel();
+    _stateSub?.cancel();
     _arenaSocket?.dispose();
     _toastTimer?.cancel();
     _viewModel.state.removeListener(_handleStateChange);
@@ -446,17 +672,19 @@ class _ArenaScreenState extends State<ArenaScreen> {
                         if (mounted) setState(() {});
                       },
                       onSendMessage: (text, channel) {
+                        final currentUser = AuthService.instance.currentUser;
+                        final senderName = currentUser?.username ?? 'Operador';
                         _viewModel.sendChatMessage(
                           text: text,
                           channel: channel,
+                          senderName: senderName,
                         );
                         if (widget.matchId != null && widget.matchId!.isNotEmpty) {
-                          final currentUser = AuthService.instance.currentUser;
                           _arenaSocket?.sendChatMessage(
                             matchId: widget.matchId!,
                             text: text,
                             channel: channel,
-                            senderName: currentUser?.username ?? 'Operador',
+                            senderName: senderName,
                             senderTeam: currentUser?.isBlueTeam == true ? 'blue' : 'red',
                           );
                         }
@@ -549,7 +777,6 @@ class _ArenaScreenState extends State<ArenaScreen> {
                       child: MatchResultOverlay(
                         state: state,
                         onBackToLobby: () {
-                          _botService.reset();
                           context.go('/lobby');
                         },
                       ),
@@ -567,7 +794,7 @@ class _ArenaScreenState extends State<ArenaScreen> {
     final screenPos = _game.getCellScreenPosition(gridX, gridY);
 
     final key = '$gridX,$gridY';
-    final existingNode = state.nodes[key];
+    final existingNode = _viewModel.getQuadrantNodes(_localQuadrant)[key] ?? state.nodes[key];
     final isPrepPhase = state.phase == MatchPhase.preparation;
 
     final screenSize = MediaQuery.of(context).size;
@@ -599,11 +826,34 @@ class _ArenaScreenState extends State<ArenaScreen> {
         arrowOffset: arrowOffset,
         onNodeSelected: (node) {
           _viewModel.buildNode(node);
+          if (widget.matchId != null && widget.matchId!.isNotEmpty) {
+            _arenaSocket?.sendTacticalAction(
+              matchId: widget.matchId!,
+              type: 'node:build',
+              payload: {
+                ...node.toJson(),
+                'quadrant': _localQuadrant.name,
+                'slot': _localSlot,
+              },
+            );
+          }
           _clearSelection();
         },
         onNodeDismantled: () {
           if (existingNode != null) {
             _viewModel.dismantleNode(existingNode);
+            if (widget.matchId != null && widget.matchId!.isNotEmpty) {
+              _arenaSocket?.sendTacticalAction(
+                matchId: widget.matchId!,
+                type: 'node:dismantle',
+                payload: {
+                  'key': '$gridX,$gridY',
+                  'id': existingNode.id,
+                  'quadrant': _localQuadrant.name,
+                  'slot': _localSlot,
+                },
+              );
+            }
           }
           _clearSelection();
         },
@@ -640,7 +890,7 @@ class _ArenaScreenState extends State<ArenaScreen> {
         final gy = int.tryParse(parts[2]);
         if (gx != null && gy != null) {
           final key = '$gx,$gy';
-          final node = state.nodes[key];
+          final node = _viewModel.getQuadrantNodes(_localQuadrant)[key] ?? state.nodes[key];
           if (node != null) {
             final isPrepPhase = state.phase == MatchPhase.preparation;
             return TacticalUnitInfo.fromBastionNode(
@@ -649,9 +899,36 @@ class _ArenaScreenState extends State<ArenaScreen> {
               gridY: gy,
               isPrepPhase: isPrepPhase,
               availableTokens: state.economy.tokens,
-              onUpgrade: () => _viewModel.upgradeBastionNode(node),
+              onUpgrade: () {
+                final upgraded = node.upgrade();
+                if (_viewModel.upgradeBastionNode(node)) {
+                  if (widget.matchId != null && widget.matchId!.isNotEmpty) {
+                    _arenaSocket?.sendTacticalAction(
+                      matchId: widget.matchId!,
+                      type: 'node:upgrade',
+                      payload: {
+                        ...upgraded.toJson(),
+                        'quadrant': _localQuadrant.name,
+                        'slot': _localSlot,
+                      },
+                    );
+                  }
+                }
+              },
               onDismantle: () {
                 _viewModel.dismantleNode(node);
+                if (widget.matchId != null && widget.matchId!.isNotEmpty) {
+                  _arenaSocket?.sendTacticalAction(
+                    matchId: widget.matchId!,
+                    type: 'node:dismantle',
+                    payload: {
+                      'key': '$gx,$gy',
+                      'id': node.id,
+                      'quadrant': _localQuadrant.name,
+                      'slot': _localSlot,
+                    },
+                  );
+                }
                 _clearSelection();
               },
             );
