@@ -1,0 +1,190 @@
+name: CI/CD Pipeline - PromptSec Arena (GCP Deploy)
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # 1. Backend CI: Lint, Testes Unitários e Build do NestJS
+  # ----------------------------------------------------------------------------
+  backend-ci:
+    name: Backend CI (NestJS & Prisma)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: 📥 Checkout do Repositório
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Configurar Node.js 22 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: 📦 Instalar Dependências
+        run: npm ci
+
+      - name: 🗄️ Emitir e Validar Contratos do Prisma
+        run: npx prisma generate
+
+      - name: 🔍 Análise Estática com Linter (Oxlint)
+        run: npm run lint
+
+      - name: 🧪 Executar Testes Unitários (Vitest)
+        run: npm test
+
+      - name: 🏗️ Validar Compilação TypeScript (Nest Build)
+        run: npm run build
+
+  # ----------------------------------------------------------------------------
+  # 2. Frontend CI: Análise Estática, Testes e Compilação Flutter Web
+  # ----------------------------------------------------------------------------
+  frontend-ci:
+    name: Frontend CI (Flutter Web)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: 📥 Checkout do Repositório
+        uses: actions/checkout@v4
+
+      - name: 🎯 Configurar Flutter SDK (Stable)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: 📦 Baixar Dependências (pub get)
+        run: flutter pub get
+
+      - name: 🔍 Análise Estática do Dart (flutter analyze)
+        run: flutter analyze
+
+      - name: 🧪 Executar Testes Unitários e de Widgets
+        run: flutter test
+
+      - name: 🌐 Compilar Flutter Web em Release
+        run: flutter build web --release
+
+      - name: 🗜️ Compactar Artefatos do Frontend
+        run: |
+          cd build
+          tar -czf ../web.tar.gz web
+
+      - name: 📤 Salvar Artefato de Build para o Deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-web-bundle
+          path: frontend/web.tar.gz
+          retention-days: 2
+
+  # ----------------------------------------------------------------------------
+  # 3. CD: Deploy Contínuo Automatizado na VM do Google Cloud Platform (GCP)
+  # ----------------------------------------------------------------------------
+  deploy-gcp:
+    name: Deploy GCP Compute Engine
+    needs: [backend-ci, frontend-ci]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout do Repositório
+        uses: actions/checkout@v4
+
+      - name: 📥 Baixar Artefato do Flutter Web
+        uses: actions/download-artifact@v4
+        with:
+          name: flutter-web-bundle
+          path: ./
+
+      - name: 🔑 Configurar Agente SSH e Chave Criptográfica
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
+
+      - name: 🛡️ Configurar Known Hosts da VM
+        env:
+          VM_HOST: ${{ secrets.GCP_VM_HOST }}
+          VM_PORT: ${{ secrets.GCP_SSH_PORT || 22 }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -p $VM_PORT -H "$VM_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: 📤 Enviar Build do Frontend (web.tar.gz) para a VM
+        env:
+          VM_HOST: ${{ secrets.GCP_VM_HOST }}
+          VM_USER: ${{ secrets.GCP_SSH_USER }}
+          VM_PORT: ${{ secrets.GCP_SSH_PORT || 22 }}
+        run: |
+          scp -P $VM_PORT web.tar.gz "$VM_USER@$VM_HOST:~/app/"
+
+      - name: 🚀 Executar Deploy Remoto na VM (Docker Compose & Nginx)
+        env:
+          VM_HOST: ${{ secrets.GCP_VM_HOST }}
+          VM_USER: ${{ secrets.GCP_SSH_USER }}
+          VM_PORT: ${{ secrets.GCP_SSH_PORT || 22 }}
+        run: |
+          ssh -p $VM_PORT "$VM_USER@$VM_HOST" << 'EOF'
+            set -euo pipefail
+            cd ~/app
+
+            echo "Garantindo permissões no diretório ~/app..."
+            sudo chown -R $USER:$USER ~/app
+
+            echo "Atualizando código via git pull origin main..."
+            git pull origin main
+
+            echo "Descompactando novo pacote do Flutter Web..."
+            if [ -f "web.tar.gz" ]; then
+              mkdir -p frontend/build
+              tar -xzf web.tar.gz -C frontend/build/
+              rm -f web.tar.gz
+              chmod -R 755 frontend/build/web
+            fi
+
+            echo "Reconstruindo e reiniciando contêineres Docker..."
+            docker compose up -d --build backend
+            docker compose exec -T backend npx prisma migrate deploy || true
+            docker compose restart nginx
+
+            echo "Aguardando estabilização da API..."
+            sleep 4
+
+            echo "Validando saúde local da aplicação..."
+            curl -k -f https://localhost/api/health || curl -k -f http://localhost:3000/api/health
+          EOF
+
+      - name: 🔍 Validar Health Check da Aplicação Pública
+        env:
+          VM_HOST: ${{ secrets.GCP_VM_HOST }}
+        run: |
+          echo "Testando endpoint público em https://${VM_HOST}/api/health..."
+          for i in {1..10}; do
+            STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" "https://${VM_HOST}/api/health" || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "✓ API Health Check respondeu 200 OK!"
+              exit 0
+            fi
+            echo "Tentativa #$i: status HTTP $STATUS, aguardando 3s..."
+            sleep 3
+          done
+          echo "⚠️ Aviso: API respondeu status $STATUS após 10 tentativas."
