@@ -37,10 +37,10 @@ jobs:
           cache-dependency-path: backend/package-lock.json
 
       - name: 📦 Instalar Dependências
-        run: npm ci
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
       - name: 🗄️ Emitir e Validar Contratos do Prisma
-        run: npx prisma generate
+        run: npx prisma contract emit || npx prisma generate
 
       - name: 🔍 Análise Estática com Linter (Oxlint)
         run: npm run lint

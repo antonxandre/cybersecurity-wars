@@ -8,8 +8,8 @@ WORKDIR /app
 # Install build dependencies for native modules (Argon2)
 RUN apk add --no-cache python3 make g++
 
-COPY package*.json ./
-RUN npm ci
+COPY package*.json .npmrc* ./
+RUN npm ci --legacy-peer-deps
 
 COPY tsconfig*.json ./
 COPY prisma.config.ts ./

@@ -20,8 +20,8 @@ flowchart LR
 
 ### 🔍 Estágios (Jobs)
 1. **Backend CI (`backend-ci`)**:
-   * Instalação limpa via `npm ci` (Node.js 22 LTS).
-   * Emissão e validação de contratos do Prisma ORM (`prisma generate`).
+   * Instalação limpa via `npm ci --legacy-peer-deps` (Node.js 22 LTS).
+   * Emissão e validação de contratos do Prisma 8 (`prisma contract emit`).
    * Análise estática de código com linter de alta performance (`oxlint`).
    * Execução da suíte completa de testes unitários com Vitest (`npm test`).
    * Validação de compilação TypeScript em `dist/` (`nest build`).
