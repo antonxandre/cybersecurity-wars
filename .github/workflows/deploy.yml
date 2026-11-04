@@ -150,8 +150,9 @@ jobs:
             echo "Garantindo permissões no diretório ~/app..."
             sudo chown -R $USER:$USER ~/app
 
-            echo "Atualizando código via git pull origin main..."
-            git pull origin main
+            echo "Atualizando código via git fetch e reset --hard..."
+            git fetch origin main
+            git reset --hard origin/main
 
             echo "Descompactando novo pacote do Flutter Web..."
             if [ -f "web.tar.gz" ]; then

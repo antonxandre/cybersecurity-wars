@@ -20,9 +20,6 @@ COPY src ./src
 RUN npx prisma contract emit
 RUN npm run build
 
-# Prune dev dependencies for production image
-RUN npm prune --omit=dev
-
 # -------------------------------------------------------------
 # Stage 2: Production Minimal Runtime
 # -------------------------------------------------------------
